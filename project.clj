@@ -10,7 +10,8 @@
   :dependencies
   [[org.clojure/clojure "1.9.0"]
    [org.clojure/tools.logging "0.3.1"]
-   [amperity/envoy "0.3.1"]]
+   [amperity/envoy "0.3.1"]
+   [com.stuartsierra/component "0.3.2"]]
 
   :codox
   {:metadata {:doc/format :markdown}
@@ -18,7 +19,11 @@
    :output-path "target/doc/codox"}
 
   :profiles
-  {:test
+  {:repl
+   {:source-paths ["dev"]
+    :dependencies [[org.clojure/tools.namespace "0.2.11"]]}
+
+   :test
    {:dependencies [[commons-logging "1.2"]]
     :jvm-opts ["-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"]}
 
