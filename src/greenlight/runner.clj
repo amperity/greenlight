@@ -11,17 +11,10 @@
 ; thinking about.
 
 
-; Supported modes:
-; - print test info
-; - run tests
-; - clean up from a previous test run
-; - generate a report from collected results
-
-
 (defn run-tests!
   "Main entry-point for running a collection of tests."
   [new-system tests options]
-  ; build system from env
+  ; build system
   ; start system
   ; run each test
   ; save results
@@ -29,3 +22,11 @@
 
 
 ; TODO: tools.cli parser version?
+(defn main
+  [new-system tests args]
+  ; Supported commands:
+  ; - print test info
+  ; - run tests
+  ; - clean up from a previous test run
+  ; - generate a report from collected results
+  ,,,)

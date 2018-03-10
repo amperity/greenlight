@@ -2,7 +2,8 @@
   "A _step_ is a reusable chunk of test logic."
   (:require
     [clojure.spec.alpha :as s]
-    [clojure.string :as str]))
+    [clojure.string :as str]
+    [clojure.tools.logging :as log]))
 
 
 ;; ## Step Configuration
@@ -17,6 +18,8 @@
 ;; be a map of local keys to component ids.
 (s/def ::components
   (s/map-of keyword? keyword?))
+
+; TODO: timeout as first-class concept?
 
 ;; The configuration map ultimately drives the execution of each step. This map
 ;; is built when tests are initialized and immutable afterwards.
@@ -42,11 +45,41 @@
 ;; Duration in seconds that the step ran for.
 (s/def ::elapsed float?)
 
+;; Sequence of cleanup actions to take.
+(s/def ::cleanup (s/coll-of any? :kind vector?))
+
 ; TODO: capture clojure.test assertions
 ; TODO: capture stdout/stderr/logs?
 
 
-; TODO: how to represent cleanup actions?
+
+;; ## Resource Cleanup
+
+(def ^:dynamic *pending-cleanups*
+  nil)
+
+
+(defn register-cleanup!
+  "Registers a cleanup job with the `*pending-cleanups*` atom, if bound."
+  [resource-type parameters]
+  (when-not (thread-bound? #'*pending-cleanups*)
+    (throw (IllegalStateException.
+             "register-cleanup! called without *pending-cleanups* bound!")))
+  (swap! *pending-cleanups* conj [resource-type parameters])
+  nil)
+
+
+(defmulti clean!
+  "Multimethod to clean up a created resource after a test finishes. Given the
+  entire system to choose dependencies from."
+  (fn dispatch
+    [system resource-type parameters]
+    resource-type))
+
+
+(defmethod clean! :default
+  [system resource-type parameters]
+  (log/warn "Don't know how to clean up resource" resource-type (pr-str parameters)))
 
 
 
@@ -68,7 +101,7 @@
                   :key k
                   :component v}))))
     {}
-    (::step/components step)))
+    (::components step)))
 
 
 (defmulti execute!
@@ -77,3 +110,38 @@
   (fn dispatch
     [config components ctx]
     (::type config)))
+
+
+(defmethod execute! :default
+  [config components ctx]
+  (throw (RuntimeException.
+           (format "No method defined for step type %s"
+                   (::type config)))))
+
+
+(defn advance!
+  "Advance the test by performing the next step. Returns a tuple of the
+  enriched step map and updated context."
+  [system step ctx]
+  (let [start (System/nanoTime)
+        elapsed (delay (/ (- (System/nanoTime) start) 1e9))]
+    ; TODO: bind clojure.test reporter
+    (binding [*pending-cleanups* (atom [])]
+      (try
+        (let [components (collect-components system step)
+              ctx' (execute! step components ctx)]
+          [(assoc step
+                  ::outcome :pass ; TODO check clojure.test results
+                  ::message "All assertions passed"
+                  ::cleanup @*pending-cleanups*
+                  ::elapsed @elapsed)
+           ctx'])
+        (catch Exception ex
+          [(assoc step
+                  ::outcome :error
+                  ::message (format "Unhandled %s: %s"
+                                    (.getSimpleName (class ex))
+                                    (.getMessage ex))
+                  ::cleanup @*pending-cleanups*
+                  ::elapsed @elapsed)
+           ctx])))))

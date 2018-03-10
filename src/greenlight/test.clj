@@ -3,6 +3,7 @@
   specific usage scenario."
   (:require
     [clojure.spec.alpha :as s]
+    [clojure.tools.logging :as log]
     [greenlight.step :as step]))
 
 
@@ -37,9 +38,37 @@
 
 ;; ## Test Execution
 
-; - check that all steps' component dependencies are satisfied?
-; - run each step
-; - between steps, write out current state to a local file?
-; - if any step fails, skip remaining steps
-; - run accumulated clean-up steps
-;   - how are these accrued? inject function for 'reporting' them?
+; TODO: between steps, write out current state to a local file?
+
+(defn run-steps!
+  "Executes a test sequence by running the given steps in order until one fails
+  or throws an exception. Returns a tuple with the vector of steps run and the
+  final context map."
+  [system steps]
+  (loop [history []
+         ctx {}
+         steps steps]
+    (if-let [step (first steps)]
+      ; Run next step to advance the test.
+      (let [[step' ctx'] (step/advance! system step ctx)
+            history' (conj history step')]
+        ; Continue while steps pass.
+        (if (= :pass (::step/outcome step'))
+          (recur history' ctx' (next steps))
+          [history' ctx']))
+      ; No more steps.
+      [history ctx])))
+
+
+(defn run-cleanup!
+  "Clean up after a test run by cleaning up all the reported resources in
+  reverse order."
+  [system history]
+  (doseq [step (reverse history)]
+    (when-let [cleanups (seq (::step/cleanup step))]
+      (doseq [[resource-type parameters] (reverse cleanups)]
+        (try
+          (step/clean! system resource-type parameters)
+          (catch Exception ex
+            (log/warn ex "Failed to clean up" resource-type
+                      "resource" (pr-str parameters))))))))
