@@ -3,6 +3,7 @@
   (:require
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
+    [clojure.test :as ctest]
     [clojure.tools.logging :as log]))
 
 
@@ -42,13 +43,15 @@
 ;; remediation steps or areas to look at fixing.
 (s/def ::message string?)
 
-;; Duration in seconds that the step ran for.
-(s/def ::elapsed float?)
-
 ;; Sequence of cleanup actions to take.
 (s/def ::cleanup (s/coll-of any? :kind vector?))
 
-; TODO: capture clojure.test assertions
+;; Duration in seconds that the step ran for.
+(s/def ::elapsed float?)
+
+;; Collection of reported clojure.test assertions.
+(s/def ::reports (s/coll-of map? :kind vector?))
+
 ; TODO: capture stdout/stderr/logs?
 
 
@@ -124,17 +127,27 @@
   enriched step map and updated context."
   [system step ctx]
   (let [start (System/nanoTime)
-        elapsed (delay (/ (- (System/nanoTime) start) 1e9))]
-    ; TODO: bind clojure.test reporter
-    (binding [*pending-cleanups* (atom [])]
+        elapsed (delay (/ (- (System/nanoTime) start) 1e9))
+        reports (atom [])]
+    (binding [ctest/report (partial swap! reports conj)
+              *pending-cleanups* (atom [])]
       (try
         (let [components (collect-components system step)
-              ctx' (execute! step components ctx)]
+              ctx' (execute! step components ctx)
+              passed? (not (some (comp #{:fail :error} :type) @reports))]
           [(assoc step
-                  ::outcome :pass ; TODO check clojure.test results
-                  ::message "All assertions passed"
+                  ::outcome (if passed? :pass :fail)
+                  ::message (let [types (group-by :type @reports)]
+                              (->> types
+                                   (map #(format "%d %s"
+                                                 (count (val %))
+                                                 (name (key %))))
+                                   (str/join ", ")
+                                   (format "%d assertions (%s)"
+                                           (count @reports))))
                   ::cleanup @*pending-cleanups*
-                  ::elapsed @elapsed)
+                  ::elapsed @elapsed
+                  ::reports @reports)
            ctx'])
         (catch Exception ex
           [(assoc step
@@ -143,5 +156,6 @@
                                     (.getSimpleName (class ex))
                                     (.getMessage ex))
                   ::cleanup @*pending-cleanups*
-                  ::elapsed @elapsed)
+                  ::elapsed @elapsed
+                  ::reports @reports)
            ctx])))))
