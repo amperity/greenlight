@@ -20,14 +20,25 @@
 (s/def ::components
   (s/map-of keyword? keyword?))
 
-; TODO: timeout as first-class concept?
+;; The timeout defines the maximum amount of time that the step will be allowed
+;; to run, in seconds. Steps which exceed this will fail the test.
+(s/def ::timeout pos-int?)
+
+;; Function which will be invoked with the step configuration, selected
+;; components, and current test context in order to execute the test logic.
+(s/def ::test fn?)
 
 ;; The configuration map ultimately drives the execution of each step. This map
 ;; is built when tests are initialized and immutable afterwards.
 (s/def ::config
   (s/keys :req [::type
-                ::name]
-          :opts [::components]))
+                ::name
+                ::test]
+          :opts [::components
+                 ::timeout]))
+
+
+; TODO: defstep macro?
 
 
 
@@ -37,7 +48,8 @@
 ;; - `:pass` if the step succeeded and the system behaved as expected.
 ;; - `:fail` if the system did not behave as expected.
 ;; - `:error` if the actual step execution failed with an unhandled exception.
-(s/def ::outcome #{:pass :fail :error})
+;; - `:timeout` if the step ran longer than the allowed duration.
+(s/def ::outcome #{:pass :fail :error :timeout})
 
 ;; A message to the user about why the step has its current state. May include
 ;; remediation steps or areas to look at fixing.
@@ -107,55 +119,51 @@
     (::components step)))
 
 
-(defmulti execute!
-  "Multimethod to execute a test step. This method should return an updated
-  context map to pass to the next step."
-  (fn dispatch
-    [config components ctx]
-    (::type config)))
-
-
-(defmethod execute! :default
-  [config components ctx]
-  (throw (RuntimeException.
-           (format "No method defined for step type %s"
-                   (::type config)))))
-
-
 (defn advance!
   "Advance the test by performing the next step. Returns a tuple of the
   enriched step map and updated context."
   [system step ctx]
   (let [start (System/nanoTime)
         elapsed (delay (/ (- (System/nanoTime) start) 1e9))
-        reports (atom [])]
+        reports (atom [])
+        output-step #(assoc step
+                            ::outcome %1
+                            ::message %2
+                            ::cleanup @*pending-cleanups*
+                            ::elapsed @elapsed
+                            ::reports @reports)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]
       (try
-        (let [components (collect-components system step)
-              ctx' (execute! step components ctx)
-              passed? (not (some (comp #{:fail :error} :type) @reports))]
-          [(assoc step
-                  ::outcome (if passed? :pass :fail)
-                  ::message (let [types (group-by :type @reports)]
-                              (->> types
-                                   (map #(format "%d %s"
-                                                 (count (val %))
-                                                 (name (key %))))
-                                   (str/join ", ")
-                                   (format "%d assertions (%s)"
-                                           (count @reports))))
-                  ::cleanup @*pending-cleanups*
-                  ::elapsed @elapsed
-                  ::reports @reports)
-           ctx'])
+        (let [test-fn (::test step)
+              timeout (::timeout step 60)
+              components (collect-components system step)
+              step-future (future (test-fn step components ctx))
+              ctx' (deref step-future (* 1000 timeout) ::timeout)]
+          (if (= ctx' ::timeout)
+            (do
+              (future-cancel step-future)
+              [(output-step
+                 :timeout
+                 (format "Step timed out after %d seconds" timeout))
+               ctx])
+            (let [report-types (group-by :type @reports)
+                  passed? (and (empty? (:fail report-types))
+                               (empty? (:error report-types)))]
+              [(output-step
+                 (if passed? :pass :fail)
+                 (->> report-types
+                      (map #(format "%d %s"
+                                    (count (val %))
+                                    (name (key %))))
+                      (str/join ", ")
+                      (format "%d assertions (%s)"
+                              (count @reports))))
+               ctx'])))
         (catch Exception ex
-          [(assoc step
-                  ::outcome :error
-                  ::message (format "Unhandled %s: %s"
-                                    (.getSimpleName (class ex))
-                                    (.getMessage ex))
-                  ::cleanup @*pending-cleanups*
-                  ::elapsed @elapsed
-                  ::reports @reports)
+          [(output-step
+             :error
+             (format "Unhandled %s: %s"
+                     (.getSimpleName (class ex))
+                     (.getMessage ex)))
            ctx])))))
