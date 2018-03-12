@@ -16,7 +16,7 @@
   [new-system tests options]
   ; build system
   ; start system
-  ; run each test
+  ; run each test/cleanup
   ; save results
   ,,,)
 

@@ -4,7 +4,9 @@
   (:require
     [clojure.spec.alpha :as s]
     [clojure.tools.logging :as log]
-    [greenlight.step :as step]))
+    [greenlight.step :as step])
+  (:import
+    java.time.Instant))
 
 
 ;; ## Test Configuration
@@ -27,12 +29,31 @@
              :kind vector?
              :min-count 1))
 
+;; Initial and final context map for the test.
+(s/def ::context map?)
+
 ;; The test map defines metadata about the test and its contained steps.
 (s/def ::config  ; TODO: different name?
   (s/keys :req [::title
                 ::steps]
           :opt [::description
-                ::links]))
+                ::links
+                ::context]))
+
+
+
+;; ## Test Results
+
+;; Final outcome of the test case.
+(s/def ::outcome ::step/outcome)
+
+;; When the test started.
+(s/def ::started-at inst?)
+
+;; When the test started.
+(s/def ::ended-at inst?)
+
+; TODO: rollup assertion stats? (derive?)
 
 
 
@@ -40,13 +61,13 @@
 
 ; TODO: between steps, write out current state to a local file?
 
-(defn run-steps!
-  "Executes a test sequence by running the given steps in order until one fails
-  or throws an exception. Returns a tuple with the vector of steps run and the
-  final context map."
-  [system steps]
+(defn- run-steps!
+  "Executes a sequence of test steps by running them in order until one fails.
+  Returns a tuple with the enriched vector of steps run and the final context
+  map."
+  [system ctx steps]
   (loop [history []
-         ctx {}
+         ctx ctx
          steps steps]
     (if-let [step (first steps)]
       ; Run next step to advance the test.
@@ -55,12 +76,12 @@
         ; Continue while steps pass.
         (if (= :pass (::step/outcome step'))
           (recur history' ctx' (next steps))
-          [history' ctx']))
+          [(vec (concat history' (rest steps))) ctx']))
       ; No more steps.
       [history ctx])))
 
 
-(defn run-cleanup!
+(defn- run-cleanup!
   "Clean up after a test run by cleaning up all the reported resources in
   reverse order."
   [system history]
@@ -72,3 +93,19 @@
           (catch Exception ex
             (log/warn ex "Failed to clean up" resource-type
                       "resource" (pr-str parameters))))))))
+
+
+(defn run-test!
+  "Execute a test. Returns the updated test map."
+  [system test-case]
+  (let [started-at (Instant/now)
+        ctx (::context test-case {})
+        [history ctx'] (run-steps! system ctx (::steps test-case))
+        ; TODO: track metrics?
+        _ (run-cleanup! system history)
+        ended-at (Instant/now)]
+    (assoc test-case
+           ::steps history
+           ::outcome (last (keep ::step/outcome history))
+           ::started-at started-at
+           ::ended-at ended-at)))
