@@ -6,6 +6,7 @@
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
     [com.stuartsierra.component :as component]
+    [greenlight.step :as step]
     [greenlight.test :as test]))
 
 
@@ -28,40 +29,70 @@
             (count (::test/steps test-case)))))
 
 
-(defn- print-test-result
-  "Print out the result of a test."
-  [options result]
-  (printf "[%s] %s (%.3f seconds)\n"
-          (str/upper-case (name (::test/outcome result)))
-          (::test/title result)
-          (test/elapsed result))
-  ; TODO: aggregate assertion reports
-  (when-let [message (::test/message result)]
-    (println message))
-  ,,,)
+(defn- handle-test-report
+  "Print out a test report event."
+  [options event]
+  (case (:type event)
+    :test-start
+      (let [test-case (:test event)]
+        (printf "\nRunning test %s (%s:%d)\n"
+                (::test/title test-case)
+                (::test/ns test-case "???")
+                (::test/line test-case -1))
+        (when-let [desc (::test/description test-case)]
+          (println desc)))
+
+    :step-start
+      (let [step (:step event)]
+        (printf "    > %s %s\n"
+                (::step/type step)
+                (::step/name step)))
+
+    :step-end
+      (let [result (:step event)]
+        (printf "    [%s] %s (%.3f seconds)\n"
+                (name (::step/outcome result "???"))
+                (::step/message result)
+                (::step/elapsed result)))
+
+    :step-cleanup
+      (let [{:keys [resource-type parameters]} event]
+        (printf "    Cleaning %s resource %s\n"
+                resource-type
+                (pr-str parameters)))
+
+    :test-end
+      (let [result (:test event)]
+        (printf "[%s] %s (%.3f seconds)\n"
+                (str/upper-case (name (::test/outcome result "???")))
+                (::test/title result)
+                (test/elapsed result))
+        ; TODO: aggregate assertion reports
+        (when-let [message (::test/message result)]
+          (println message)))
+
+    (println "Unknown report event type:" (pr-str event))))
 
 
 ; TODO: handle (multi-proc) parallelization
-; Should we support multi-thread parallelization? Probably not, but worth
-; thinking about.
+; TODO: Should we support multi-thread parallelization? Probably not, but worth thinking about.
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
+  (prn options)
   (println "Starting test system...")
-  (let [system (component/start (new-system))
-        _ (println "Running" (count tests) "tests...")
-        results (mapv (fn [test-case]
-                          (println "Testing" (::test/title test-case))
-                          (let [result (test/run-test! system test-case)]
-                            (print-test-result options result)
-                            result))
-                        tests)]
-    (when-let [path (:output options)]
-      (spit path (pr-str results)))
-    (component/stop system)
-    ; TODO: report
-    (clojure.pprint/pprint results)
-    ))
+  (let [system (component/start (new-system))]
+    (try
+      (binding [test/*report* (partial handle-test-report options)]
+        (println "Running" (count tests) "tests...")
+        (let [results (mapv (partial test/run-test! system) tests)]
+          ; TODO: report results better
+          (newline)
+          (clojure.pprint/pprint results)
+          (when-let [path (:output options)]
+            (spit path (pr-str results)))))
+      (finally
+        (component/stop system)))))
 
 
 (defn clean-tests!
@@ -79,7 +110,7 @@
   (prn options)
   (prn result-files)
   ; TODO: load and report results
-  ,,,)
+  (throw (RuntimeException. "NYI")))
 
 
 (defn main

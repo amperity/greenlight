@@ -93,8 +93,15 @@
 
 ;; ## Test Execution
 
-; TODO: between steps, write out current state to a local file?
+(defn ^:dynamic *report*
+  "Dynamic reporting function which is called at various points in the test
+  execution. The event data should be a map containing at least a `:type` key."
+  [event]
+  ; Default no-op action.
+  nil)
 
+
+; TODO: between steps, write out current state to a local file?
 (defn- run-steps!
   "Executes a sequence of test steps by running them in order until one fails.
   Returns a tuple with the enriched vector of steps run and the final context
@@ -105,8 +112,12 @@
          steps steps]
     (if-let [step (first steps)]
       ; Run next step to advance the test.
-      (let [[step' ctx'] (step/advance! system step ctx)
+      (let [_ (*report* {:type :step-start
+                         :step step})
+            [step' ctx'] (step/advance! system step ctx)
             history' (conj history step')]
+        (*report* {:type :step-end
+                   :step step'})
         ; Continue while steps pass.
         (if (= :pass (::step/outcome step'))
           (recur history' ctx' (next steps))
@@ -123,7 +134,10 @@
     (when-let [cleanups (seq (::step/cleanup step))]
       (doseq [[resource-type parameters] (reverse cleanups)]
         (try
-          (log/debug "Cleaning resource" resource-type (pr-str parameters))
+          (*report* {:type :step-cleanup
+                     :step step
+                     :resource-type resource-type
+                     :parameters parameters})
           (step/clean! system resource-type parameters)
           (catch Exception ex
             (log/warn ex "Failed to clean up" resource-type
@@ -133,15 +147,20 @@
 (defn run-test!
   "Execute a test. Returns the updated test map."
   [system test-case]
+  (*report* {:type :test-start
+             :test test-case})
   (let [started-at (Instant/now)
         ctx (::context test-case {})
-        [history ctx'] (run-steps! system ctx (::steps test-case))
+        [history ctx] (run-steps! system ctx (::steps test-case))
         ; TODO: track metrics?
         _ (run-cleanup! system history)
-        ended-at (Instant/now)]
-    (assoc test-case
-           ::steps history
-           ::context ctx'
-           ::outcome (last (keep ::step/outcome history))
-           ::started-at started-at
-           ::ended-at ended-at)))
+        ended-at (Instant/now)
+        test-case (assoc test-case
+                         ::steps history
+                         ::context ctx
+                         ::outcome (last (keep ::step/outcome history))
+                         ::started-at started-at
+                         ::ended-at ended-at)]
+    (*report* {:type :test-end
+               :test test-case})
+    test-case))
