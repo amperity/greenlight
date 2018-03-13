@@ -3,8 +3,7 @@
   (:require
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
-    [clojure.test :as ctest]
-    [clojure.tools.logging :as log]))
+    [clojure.test :as ctest]))
 
 
 ;; ## Step Configuration
@@ -103,7 +102,10 @@
 
 (defmethod clean! :default
   [system resource-type parameters]
-  (log/warn "Don't know how to clean up resource" resource-type (pr-str parameters)))
+  (throw (RuntimeException.
+           (format "Don't know how to clean up resource"
+                   resource-type
+                   (pr-str parameters)))))
 
 
 

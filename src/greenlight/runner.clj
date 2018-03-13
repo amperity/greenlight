@@ -55,11 +55,18 @@
                 (::step/message result)
                 (::step/elapsed result)))
 
-    :step-cleanup
+    :cleanup-resource
       (let [{:keys [resource-type parameters]} event]
         (printf "    Cleaning %s resource %s\n"
                 resource-type
                 (pr-str parameters)))
+
+    :cleanup-error
+      (let [{:keys [error resource-type parameters]} event]
+        (printf "    Failed to cleanup %s resource %s: %s\n"
+                resource-type
+                (pr-str parameters)
+                error))
 
     :test-end
       (let [result (:test event)]

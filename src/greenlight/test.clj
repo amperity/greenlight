@@ -3,7 +3,6 @@
   specific usage scenario."
   (:require
     [clojure.spec.alpha :as s]
-    [clojure.tools.logging :as log]
     [greenlight.step :as step])
   (:import
     java.time.Instant
@@ -134,14 +133,15 @@
     (when-let [cleanups (seq (::step/cleanup step))]
       (doseq [[resource-type parameters] (reverse cleanups)]
         (try
-          (*report* {:type :step-cleanup
-                     :step step
+          (*report* {:type :cleanup-resource
                      :resource-type resource-type
                      :parameters parameters})
           (step/clean! system resource-type parameters)
           (catch Exception ex
-            (log/warn ex "Failed to clean up" resource-type
-                      "resource" (pr-str parameters))))))))
+            (*report* {:type :cleanup-error
+                       :resource-type resource-type
+                       :parameters parameters
+                       :error ex})))))))
 
 
 (defn run-test!
