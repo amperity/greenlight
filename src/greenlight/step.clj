@@ -39,7 +39,7 @@
                  ::timeout]))
 
 
-; TODO: defstep macro?
+; TODO: defstep macro or step config constructor?
 
 
 
@@ -66,6 +66,14 @@
 (s/def ::reports (s/coll-of map? :kind vector?))
 
 ; TODO: capture stdout/stderr/logs?
+
+;; Aggregate result fields.
+(s/def ::results
+  (s/keys :req [::outcome
+                ::elapsed]
+          :opt [::message
+                ::cleanup
+                ::reports]))
 
 
 
