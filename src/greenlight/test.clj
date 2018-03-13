@@ -12,7 +12,11 @@
 
 ;; ## Test Configuration
 
-; TODO: group or some notion of collections of related tests?
+;; Namespace where the test is defined.
+(s/def ::ns symbol?)
+
+;; Source line where the test is defined.
+(s/def ::line integer?)
 
 ;; Title of the test run.
 (s/def ::title string?)
@@ -37,9 +41,29 @@
 (s/def ::config  ; TODO: different name?
   (s/keys :req [::title
                 ::steps]
-          :opt [::description
+          :opt [::ns
+                ::line
+                ::description
                 ::links
                 ::context]))
+
+
+(defmacro deftest
+  "Define a new integration test. The test attributes may be a simple string
+  description or a map of configuration to merge into the test. Defines a
+  function which will construct the test config map."
+  [test-sym attrs & steps]
+  ; TODO: attach metadata marking this as a test so its discoverable?
+  (let [base (if (string? attrs)
+               {::description attrs}
+               attrs)]
+    `(defn ~test-sym
+       []
+       (assoc ~base
+              ::title ~(str test-sym)
+              ::ns '~(symbol (str *ns*))
+              ::line ~(:line (meta &form))
+              ::steps (vector ~@steps)))))
 
 
 
@@ -53,8 +77,6 @@
 
 ;; When the test started.
 (s/def ::ended-at inst?)
-
-; TODO: rollup assertion stats? (derive?)
 
 
 (defn elapsed
