@@ -106,6 +106,7 @@
         ended-at (Instant/now)]
     (assoc test-case
            ::steps history
+           ::context ctx'
            ::outcome (last (keep ::step/outcome history))
            ::started-at started-at
            ::ended-at ended-at)))
