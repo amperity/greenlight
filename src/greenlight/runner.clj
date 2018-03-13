@@ -6,16 +6,16 @@
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
     [com.stuartsierra.component :as component]
+    [greenlight.report :as report]
     [greenlight.step :as step]
     [greenlight.test :as test]))
 
 
 (def cli-options
   [["-o" "--output FILE" "Path to output test results to."]
-   [nil  "--[no-]color" "Whether to use color in console reports"
-    :default true]
-   [nil  "--report-html FILE" "Report test results as HTML to the given path."]
-   [nil  "--report-junit FILE" "Report test results as Junit XML to the given path."]
+   [nil  "--no-color" "Disable the use of color in console output."]
+   [nil  "--html-report FILE" "Report test results as HTML to the given path."]
+   [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
    ["-h" "--help"]])
 
 
@@ -29,6 +29,7 @@
             (count (::test/steps test-case)))))
 
 
+; TODO: add color, generally improve how these reports look.
 (defn- handle-test-report
   "Print out a test report event."
   [options event]
@@ -74,30 +75,41 @@
                 (str/upper-case (name (::test/outcome result "???")))
                 (::test/title result)
                 (test/elapsed result))
-        ; TODO: aggregate assertion reports
         (when-let [message (::test/message result)]
           (println message)))
 
     (println "Unknown report event type:" (pr-str event))))
 
 
-; TODO: handle (multi-proc) parallelization
-; TODO: Should we support multi-thread parallelization? Probably not, but worth thinking about.
+(defn- report-results
+  "Handle result reporting in a general fashion."
+  [results options]
+  (report/print-console-results
+    results
+    {:print-color (not (:no-color options))})
+  (newline)
+  (when-let [junit-path (:junit-report options)]
+    (println "Generating JUnit XML report" junit-path)
+    (report/write-junit-results junit-path results nil))
+  (when-let [html-path (:html-report options)]
+    (println "Generating HTML report" html-path)
+    (report/write-html-results html-path results nil)))
+
+
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
-  (prn options)
   (println "Starting test system...")
   (let [system (component/start (new-system))]
     (try
       (binding [test/*report* (partial handle-test-report options)]
         (println "Running" (count tests) "tests...")
         (let [results (mapv (partial test/run-test! system) tests)]
-          ; TODO: report results better
           (newline)
-          (clojure.pprint/pprint results)
-          (when-let [path (:output options)]
-            (spit path (pr-str results)))))
+          (report-results results options)
+          (when-let [result-path (:output options)]
+            (println "Saving test results to" result-path)
+            (spit result-path (prn-str results)))))
       (finally
         (component/stop system)))))
 
