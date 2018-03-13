@@ -4,12 +4,15 @@
   (:require
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
-    [clojure.tools.cli :as cli]))
+    [clojure.tools.cli :as cli]
+    [com.stuartsierra.component :as component]
+    [greenlight.test :as test]))
 
 
 (def cli-options
   [["-o" "--output FILE" "Path to output test results to."]
-   [nil  "--report-console" "Report test results to the console."]
+   [nil  "--[no-]color" "Whether to use color in console reports"
+    :default true]
    [nil  "--report-html FILE" "Report test results as HTML to the given path."]
    [nil  "--report-junit FILE" "Report test results as Junit XML to the given path."]
    ["-h" "--help"]])
@@ -18,12 +21,24 @@
 (defn print-test-info
   "Print out information about the suite of tests."
   [tests options]
-  ; TODO: print test info
-  (prn options)
-  (prn tests)
-  ; print number of tests
-  ; types of steps?
-  )
+  (printf "Found %d tests:\n" (count tests))
+  (doseq [test-case tests]
+    (printf "  %s (%d steps)\n"
+            (::test/title test-case)
+            (count (::test/steps test-case)))))
+
+
+(defn- print-test-result
+  "Print out the result of a test."
+  [options result]
+  (printf "[%s] %s (%.3f seconds)\n"
+          (str/upper-case (name (::test/outcome result)))
+          (::test/title result)
+          (test/elapsed result))
+  ; TODO: aggregate assertion reports
+  (when-let [message (::test/message result)]
+    (println message))
+  ,,,)
 
 
 ; TODO: handle (multi-proc) parallelization
@@ -32,13 +47,21 @@
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
-  (prn options)
-  ; build system
-  ; start system
-  ; run each test/cleanup
-  ; save results
-  ; stop system
-  ,,,)
+  (println "Starting test system...")
+  (let [system (component/start (new-system))
+        _ (println "Running" (count tests) "tests...")
+        results (mapv (fn [test-case]
+                          (println "Testing" (::test/title test-case))
+                          (let [result (test/run-test! system test-case)]
+                            (print-test-result options result)
+                            result))
+                        tests)]
+    (when-let [path (:output options)]
+      (spit path (pr-str results)))
+    (component/stop system)
+    ; TODO: report
+    (clojure.pprint/pprint results)
+    ))
 
 
 (defn clean-tests!
@@ -47,7 +70,7 @@
   (prn options)
   (prn result-files)
   ; TODO: load and clean results
-  ,,,)
+  (throw (RuntimeException. "NYI")))
 
 
 (defn generate-report
@@ -96,4 +119,7 @@
           "report" (generate-report options (rest arguments))
           (binding [*out* *err*]
             (println "The argument" (pr-str command) "is not a supported command")
-            (System/exit 2))))))
+            (System/exit 2))))
+    (flush)
+    (shutdown-agents)
+    (System/exit 0)))

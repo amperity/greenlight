@@ -6,7 +6,8 @@
     [clojure.tools.logging :as log]
     [greenlight.step :as step])
   (:import
-    java.time.Instant))
+    java.time.Instant
+    java.time.temporal.ChronoUnit))
 
 
 ;; ## Test Configuration
@@ -56,6 +57,17 @@
 ; TODO: rollup assertion stats? (derive?)
 
 
+(defn elapsed
+  "Calculates the elapsed time a test took. Returns the duration in fractional
+  seconds, or 0.0 if started-at or ended-at is missing."
+  [result]
+  (let [started-at (::started-at result)
+        ended-at (::ended-at result)]
+    (if (and started-at ended-at)
+      (/ (.between ChronoUnit/MILLIS started-at ended-at) 1e3)
+      0.0)))
+
+
 
 ;; ## Test Execution
 
@@ -89,6 +101,7 @@
     (when-let [cleanups (seq (::step/cleanup step))]
       (doseq [[resource-type parameters] (reverse cleanups)]
         (try
+          (log/debug "Cleaning resource" resource-type (pr-str parameters))
           (step/clean! system resource-type parameters)
           (catch Exception ex
             (log/warn ex "Failed to clean up" resource-type

@@ -10,6 +10,7 @@
 ;; ## Step Configuration
 
 ;; Step type - used to dispatch the actual implementation.
+; TODO: still useful?
 (s/def ::type keyword?)
 
 ;; Human friendly name for the step. This must be unique within a test.
