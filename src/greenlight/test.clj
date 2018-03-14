@@ -23,10 +23,6 @@
 ;; Human-friendly description of the scenario the test covers.
 (s/def ::description string?)
 
-;; Collection of detail links to attach to the test.
-(s/def ::links
-  (s/coll-of (s/tuple string? uri?)))
-
 ;; Sequence of steps to take for this test.
 (s/def ::steps
   (s/coll-of ::step/config
@@ -43,7 +39,6 @@
           :opt [::ns
                 ::line
                 ::description
-                ::links
                 ::context]))
 
 
@@ -52,7 +47,7 @@
   description or a map of configuration to merge into the test. Defines a
   function which will construct the test config map."
   [test-sym attrs & steps]
-  ; TODO: attach metadata marking this as a test so its discoverable?
+  ; TODO: attach metadata marking this as a test so its discoverable (#3)
   (let [base (if (string? attrs)
                {::description attrs}
                attrs)]
@@ -71,10 +66,10 @@
 ;; Final outcome of the test case.
 (s/def ::outcome ::step/outcome)
 
-;; When the test started.
+;; When the test run started.
 (s/def ::started-at inst?)
 
-;; When the test started.
+;; When the test run ended.
 (s/def ::ended-at inst?)
 
 
@@ -152,7 +147,6 @@
   (let [started-at (Instant/now)
         ctx (::context test-case {})
         [history ctx] (run-steps! system ctx (::steps test-case))
-        ; TODO: track metrics?
         _ (run-cleanup! system history)
         ended-at (Instant/now)
         test-case (assoc test-case
