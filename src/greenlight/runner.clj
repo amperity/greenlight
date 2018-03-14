@@ -19,6 +19,9 @@
    ["-h" "--help"]])
 
 
+
+;; ## Runner Commands
+
 (defn print-test-info
   "Print out information about the suite of tests."
   [tests options]
@@ -41,7 +44,8 @@
     (report/write-junit-results junit-path results nil))
   (when-let [html-path (:html-report options)]
     (println "Generating HTML report" html-path)
-    (report/write-html-results html-path results nil)))
+    (report/write-html-results html-path results nil))
+  true)
 
 
 (defn run-tests!
@@ -57,7 +61,14 @@
           (report-results results options)
           (when-let [result-path (:output options)]
             (println "Saving test results to" result-path)
-            (spit result-path (prn-str results)))))
+            (spit result-path (prn-str results)))
+          (printf "Ran %d tests: %s\n"
+                  (count results)
+                  (->> (map ::test/outcome results)
+                       (frequencies)
+                       (map #(format "%d %s" (val %) (name (key %))))
+                       (str/join ", ")))
+          (every? (comp #{:pass} ::test/outcome) results)))
       (finally
         (component/stop system)))))
 
@@ -80,6 +91,23 @@
   (throw (RuntimeException. "NYI")))
 
 
+
+;; ## Entry Point
+
+(defn ^:dynamic *exit*
+  "Dynamic helper which will be called by `main` when it wants to end the
+  runner's control flow."
+  ([code]
+   (flush)
+   (shutdown-agents)
+   (System/exit code))
+  ([code message]
+   (binding [*out* *err*]
+     (println message)
+     (flush))
+   (*exit* code)))
+
+
 (defn main
   "Main entry point for the greenlight test runner. Note that this may exit the
   JVM, so it is not suitable for interactive usage."
@@ -88,13 +116,11 @@
         command (first arguments)]
     (cond
       errors
-        (binding [*out* *err*]
-          (doseq [err errors]
-            (println errors))
-          (System/exit 1))
+        (*exit* 1 (str/join "\n" errors))
 
       (or (:help options) (nil? command) (= "help" command))
         (do (println "Usage: [opts] <command> [args...]")
+            (newline)
             (println "Commands:")
             (println "  info")
             (println "      Print out test information.")
@@ -106,18 +132,15 @@
             (println "      Generate reports from a set of test results.")
             (newline)
             (println summary)
-            (flush)
-            (System/exit 0))
+            (*exit* (if (nil? command) 1 0)))
 
       :else
-        (case command
-          "info" (print-test-info tests options)
-          "test" (run-tests! new-system tests options)
-          "clean" (clean-tests! new-system options (rest arguments))
-          "report" (generate-report options (rest arguments))
-          (binding [*out* *err*]
-            (println "The argument" (pr-str command) "is not a supported command")
-            (System/exit 2))))
-    (flush)
-    (shutdown-agents)
-    (System/exit 0)))
+        (->
+          (case command
+            "info" (print-test-info tests options)
+            "test" (run-tests! new-system tests options)
+            "clean" (clean-tests! new-system options (rest arguments))
+            "report" (generate-report options (rest arguments))
+            (*exit* 1 (str "The argument" (pr-str command) "is not a supported command")))
+          (as-> result
+            (*exit* (if result 0 1)))))))
