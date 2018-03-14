@@ -8,11 +8,11 @@
 
 ;; ## Step Configuration
 
-;; Step type keyword. TODO: still useful?
-(s/def ::type keyword?)
+;; Step name symbol.
+(s/def ::name symbol?)
 
-;; Human friendly name for the step. This must be unique within a test.
-(s/def ::name string?)
+;; Human friendly title string for the step.
+(s/def ::title string?)
 
 ;; Component dependencies required by the step. This should
 ;; be a map of local keys to component ids.
@@ -30,8 +30,8 @@
 ;; The configuration map ultimately drives the execution of each step. This map
 ;; is built when tests are initialized and immutable afterwards.
 (s/def ::config
-  (s/keys :req [::type
-                ::name
+  (s/keys :req [::name
+                ::title
                 ::test]
           :opts [::components
                  ::timeout]))
@@ -122,7 +122,7 @@
         (throw (ex-info
                  (format "Step %s depends on %s component %s which is not available in the test system: %s"
                          (::name step) k v (str/join " " (keys system)))
-                 {:step (::name step)
+                 {:name (::name step)
                   :key k
                   :component v}))))
     {}
