@@ -44,7 +44,7 @@
 
 ;; ## Step Results
 
-;; Ultimately, a completed step may have one of three outcome states.
+;; Ultimately, a completed step may have one of four outcome states.
 ;; - `:pass` if the step succeeded and the system behaved as expected.
 ;; - `:fail` if the system did not behave as expected.
 ;; - `:error` if the actual step execution failed with an unhandled exception.
