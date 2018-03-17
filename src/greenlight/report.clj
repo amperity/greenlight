@@ -34,12 +34,19 @@
     (str \u001b \[ codes \m)))
 
 
+(def ^:private ^:dynamic *print-color*
+  "Whether to emit ANSI color codes in console output."
+  true)
+
+
 (defn- color
   "Wraps the given string with SGR escapes to apply the given codes, then reset
   the graphics."
   [codes string]
-  (let [codes (if (coll? codes) codes [codes])]
-    (str (sgr codes) string (sgr [:none]))))
+  (if *print-color*
+    (let [codes (if (coll? codes) codes [codes])]
+      (str (sgr codes) string (sgr [:none])))
+    string))
 
 
 (defn- state-color
@@ -56,13 +63,11 @@
 (defn handle-test-event
   "Print out a test report event."
   [options event]
-  (let [color (if (:print-color options)
-                color
-                (fn [codes string] string))]
+  (binding [*print-color* (:print-color options)]
     (case (:type event)
       :test-start
         (let [test-case (:test event)]
-          (printf "\n\n %s Testing %s\n"
+          (printf "\n %s Testing %s\n"
                   (color :magenta "*")
                   (color [:bold :magenta] (::test/title test-case)))
           (when (::test/ns test-case)
@@ -115,25 +120,45 @@
                   (color :red error)))
 
       :test-end
-        (let [result (:test event)]
-          (printf " %s %s (%s seconds)\n"
-                  (color
-                    [:bold (state-color (::test/outcome result))]
-                    "*")
-                  (::test/title result)
+        (let [result (:test event)
+              outcome (::test/outcome result "---")
+              codes [:bold (state-color outcome)]]
+          (printf " %s\n" (color :blue "|"))
+          (printf " %s (%s seconds)\n"
+                  (color codes (str "* " (str/upper-case (name outcome))))
                   (color :cyan (format "%.3f" (test/elapsed result))))
           (when-let [message (::test/message result)]
-            (printf "   %s\n" message)))
+            (printf "   %s\n" message))
+          (newline))
 
-      (println "Unknown report event type:" (pr-str event)))))
+      (println "Unknown report event type:" (pr-str event))))
+    (flush))
 
 
 (defn print-console-results
   "Render a set of test results out to the console."
   [results options]
-  (let [,,,]
-    ; TODO: report results better
-    #_(clojure.pprint/pprint results)))
+  (binding [*print-color* (:print-color options)]
+    (let [stats (reduce
+                  (fn [stats result]
+                    (merge-with
+                      (fnil + 0) stats
+                      {:tests 1
+                       :steps (count (::test/steps result))
+                       :reports (count (mapcat ::step/reports
+                                               (::test/steps result)))}))
+                  {} results)]
+      (printf "Ran %s tests containing %s steps with %s assertions:\n"
+              (color :cyan (:tests stats))
+              (color :cyan (:steps stats))
+              (color [:bold :cyan] (:reports stats)))
+      (doseq [[outcome freq] (->> (map ::test/outcome results)
+                                  (frequencies)
+                                  (sort-by val (comp - compare)))]
+        (printf "%s %d %s\n"
+                (color (state-color outcome) "*")
+                freq
+                (name outcome))))))
 
 
 (defn write-junit-results

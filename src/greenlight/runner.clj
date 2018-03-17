@@ -63,12 +63,7 @@
           (when-let [result-path (:output options)]
             (println "Saving test results to" result-path)
             (spit result-path (prn-str results)))
-          (printf "Ran %d tests: %s\n"
-                  (count results)
-                  (->> (map ::test/outcome results)
-                       (frequencies)
-                       (map #(format "%d %s" (val %) (name (key %))))
-                       (str/join ", ")))
+          ; Successful if every test passed.
           (every? (comp #{:pass} ::test/outcome) results)))
       (finally
         (component/stop system)))))
