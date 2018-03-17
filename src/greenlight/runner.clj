@@ -51,6 +51,10 @@
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
+  (when-not (s/valid? ::test/suite tests)
+    (throw (IllegalArgumentException.
+             (str "Invalid test suite configuration: "
+                  (s/explain-str ::test/suite tests)))))
   (println "Starting test system...")
   (let [system (component/start (new-system))]
     (try
@@ -58,10 +62,13 @@
                                        {:print-color (not (:no-color options))})]
         (println "Running" (count tests) "tests...")
         (let [results (mapv (partial test/run-test! system) tests)]
+          ; TODO: check result spec?
           (newline)
           (report-results results options)
           (when-let [result-path (:output options)]
             (println "Saving test results to" result-path)
+            ; FIXME: this results in unreadable data because it often includes
+            ; exceptions in the assertion reports.
             (spit result-path (prn-str results)))
           ; Successful if every test passed.
           (every? (comp #{:pass} ::test/outcome) results)))

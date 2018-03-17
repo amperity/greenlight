@@ -32,14 +32,20 @@
 ;; Initial and final context map for the test.
 (s/def ::context map?)
 
-;; The test map defines metadata about the test and its contained steps.
-(s/def ::config  ; TODO: different name?
+;; The test case map defines metadata about the test and its steps.
+(s/def ::case
   (s/keys :req [::title
                 ::steps]
           :opt [::ns
                 ::line
                 ::description
                 ::context]))
+
+;; Collection of test cases.
+(s/def ::suite
+  (s/coll-of ::case
+             :kind? vector?
+             :min-count 1))
 
 
 (defmacro deftest
