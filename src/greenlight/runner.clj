@@ -69,7 +69,7 @@
         (component/stop system)))))
 
 
-(defn clean-tests!
+(defn clean-results!
   "Clean up a previous test run."
   [new-system options result-files]
   (prn options)
@@ -135,7 +135,7 @@
           (case command
             "info" (print-test-info tests options)
             "test" (run-tests! new-system tests options)
-            "clean" (clean-tests! new-system options (rest arguments))
+            "clean" (clean-results! new-system options (rest arguments))
             "report" (generate-report options (rest arguments))
             (*exit* 1 (str "The argument" (pr-str command) "is not a supported command")))
           (as-> result

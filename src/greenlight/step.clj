@@ -110,7 +110,7 @@
 
 ;; ## Execution Facilities
 
-(defn collect-components
+(defn- collect-components
   "Gather a map of the component dependencies specified by the test step.
   Returns a map from the component keys to their resolved values, or throws an
   exception if not all components are available."
