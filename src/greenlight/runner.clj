@@ -29,7 +29,8 @@
   (doseq [test-case tests]
     (printf "  %s (%d steps)\n"
             (::test/title test-case)
-            (count (::test/steps test-case)))))
+            (count (::test/steps test-case))))
+  true)
 
 
 (defn- report-results
@@ -44,8 +45,7 @@
     (report/write-junit-results junit-path results nil))
   (when-let [html-path (:html-report options)]
     (println "Generating HTML report" html-path)
-    (report/write-html-results html-path results nil))
-  true)
+    (report/write-html-results html-path results nil)))
 
 
 (defn run-tests!
@@ -54,7 +54,8 @@
   (println "Starting test system...")
   (let [system (component/start (new-system))]
     (try
-      (binding [test/*report* (partial report/handle-test-event options)]
+      (binding [test/*report* (partial report/handle-test-event
+                                       {:print-color (not (:no-color options))})]
         (println "Running" (count tests) "tests...")
         (let [results (mapv (partial test/run-test! system) tests)]
           (newline)
