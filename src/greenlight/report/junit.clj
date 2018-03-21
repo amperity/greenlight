@@ -27,14 +27,12 @@
   [{:greenlight.test/keys [title steps outcome started-at ended-at ns]}]
   (into
     [:testsuite
-     (let [outcomes (frequencies (map :greenlight.step/outcome steps))]
+     (let [outcomes (frequencies (map :greenlight.step/outcome steps))
+           duration (.toNanos (Duration/between started-at ended-at))]
        {:name title
         :timestamp (str started-at)
         :tests (count steps)
-        :time (->> (Duration/between started-at ended-at)
-                   (.toNanos)
-                   (/ 1e9)
-                   (format "%.3f"))
+        :time (format "%.3f" (/ duration 1e9))
         :errors (:error outcomes 0) ;; TODO: timeout?
         :failures (:fail outcomes 0)
         :skipped (get outcomes nil 0)})]
