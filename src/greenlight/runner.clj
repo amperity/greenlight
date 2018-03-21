@@ -51,6 +51,10 @@
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
+  (when-not (s/valid? ::test/suite tests)
+    (throw (IllegalArgumentException.
+             (str "Invalid test suite configuration: "
+                  (s/explain-str ::test/suite tests)))))
   (println "Starting test system...")
   (let [system (component/start (new-system))]
     (try
@@ -58,23 +62,21 @@
                                        {:print-color (not (:no-color options))})]
         (println "Running" (count tests) "tests...")
         (let [results (mapv (partial test/run-test! system) tests)]
+          ; TODO: check result spec?
           (newline)
           (report-results results options)
           (when-let [result-path (:output options)]
             (println "Saving test results to" result-path)
+            ; FIXME: this results in unreadable data because it often includes
+            ; exceptions in the assertion reports.
             (spit result-path (prn-str results)))
-          (printf "Ran %d tests: %s\n"
-                  (count results)
-                  (->> (map ::test/outcome results)
-                       (frequencies)
-                       (map #(format "%d %s" (val %) (name (key %))))
-                       (str/join ", ")))
+          ; Successful if every test passed.
           (every? (comp #{:pass} ::test/outcome) results)))
       (finally
         (component/stop system)))))
 
 
-(defn clean-tests!
+(defn clean-results!
   "Clean up a previous test run."
   [new-system options result-files]
   (prn options)
@@ -140,7 +142,7 @@
           (case command
             "info" (print-test-info tests options)
             "test" (run-tests! new-system tests options)
-            "clean" (clean-tests! new-system options (rest arguments))
+            "clean" (clean-results! new-system options (rest arguments))
             "report" (generate-report options (rest arguments))
             (*exit* 1 (str "The argument" (pr-str command) "is not a supported command")))
           (as-> result
