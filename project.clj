@@ -10,6 +10,7 @@
   :dependencies
   [[org.clojure/clojure "1.9.0"]
    [org.clojure/tools.cli "0.3.5"]
+   [org.clojure/data.xml "0.0.8"]
    [amperity/envoy "0.3.1"]
    [com.stuartsierra/component "0.3.2"]]
 

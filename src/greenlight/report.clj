@@ -6,6 +6,7 @@
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.test :as ctest]
+    [greenlight.report.junit :as junit]
     [greenlight.step :as step]
     [greenlight.test :as test]))
 
@@ -139,8 +140,7 @@
 (defn write-junit-results
   "Render a set of test results to a JUnit XML file."
   [report-path results options]
-  ; TODO: implement junit reporting (#6)
-  (println "WARN: JUnit XML reporting is not available yet"))
+  (spit report-path (junit/report results options)))
 
 
 (defn write-html-results
