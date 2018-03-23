@@ -51,4 +51,4 @@
 (defn report
   "Render a set of test results to an XML string."
   [results options]
-  (xml/emit-str (xml/sexp-as-element (results->testsuites results))))
+  (xml/indent-str (xml/sexp-as-element (results->testsuites results))))
