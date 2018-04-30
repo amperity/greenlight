@@ -48,6 +48,24 @@
     (report/write-html-results html-path results nil)))
 
 
+(defn find-tests
+  "Finds tests, optionally limited to namespaces matching a provided matcher.
+  The matcher can be either a keyword as a test selector on metadata or a
+  regular expression to match on test name."
+  ([] (find-tests nil))
+  ([matcher]
+   (let [keep-test? (cond
+                      (nil? matcher) (constantly true)
+                      (keyword? matcher) (comp matcher meta)
+                      :else #(re-matches matcher (name (:name (meta %)))))
+         test-vars (fn [ns]
+                     (->> ns ns-interns vals (filter (comp ::test/test meta))))]
+     (->> (all-ns)
+          (mapcat test-vars)
+          (filter keep-test?)
+          (map (fn [v] (v)))))))
+
+
 (defn run-tests!
   "Run a collection of tests."
   [new-system tests options]
@@ -74,6 +92,12 @@
           (every? (comp #{:pass} ::test/outcome) results)))
       (finally
         (component/stop system)))))
+
+
+(defn run-all-tests!
+  "Runs all tests in all namespaces."
+  [new-system options]
+  (run-tests! new-system (find-tests) options))
 
 
 (defn clean-results!

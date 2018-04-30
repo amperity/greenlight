@@ -53,18 +53,16 @@
   description or a map of configuration to merge into the test. Defines a
   function which will construct the test config map."
   [test-sym attrs & steps]
-  ; TODO: attach metadata marking this as a test so its discoverable (#3)
   (let [base (if (string? attrs)
                {::description attrs}
                attrs)]
-    `(defn ~test-sym
+    `(defn ~(vary-meta test-sym assoc ::test true)
        []
        (assoc ~base
               ::title ~(str test-sym)
               ::ns '~(symbol (str *ns*))
               ::line ~(:line (meta &form))
               ::steps (vector ~@steps)))))
-
 
 
 ;; ## Test Results
