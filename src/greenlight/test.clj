@@ -63,7 +63,7 @@
               ::title ~(str test-sym)
               ::ns '~(symbol (str *ns*))
               ::line ~(:line (meta &form))
-              ::steps (vec (flatten (vector ~@steps)))))))
+              ::steps (vec (flatten (list ~@steps)))))))
 
 
 ;; ## Test Results
