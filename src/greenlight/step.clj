@@ -160,6 +160,9 @@
             (let [report-types (group-by :type @reports)
                   passed? (and (empty? (:fail report-types))
                                (empty? (:error report-types)))]
+              (when-not (map? ctx')
+                (throw
+                  (ex-info "Returned context from test is not a map. Did you forget to return it?" {:ctx ctx'})))
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
