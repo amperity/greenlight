@@ -162,7 +162,7 @@
                                (empty? (:error report-types)))]
               (when-not (map? ctx')
                 (throw
-                  (ex-info "Returned context from test is not a map. Did you forget to return it?" {:ctx ctx'})))
+                  (ex-info "Returned context from step is not a map. Did you forget to return it?" {:ctx ctx'})))
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
