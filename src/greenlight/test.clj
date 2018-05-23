@@ -51,7 +51,8 @@
 (defmacro deftest
   "Define a new integration test. The test attributes may be a simple string
   description or a map of configuration to merge into the test. Defines a
-  function which will construct the test config map."
+  function which will construct the test config map. Steps can be individual steps
+  or a seq of steps."
   [test-sym attrs & steps]
   (let [base (if (string? attrs)
                {::description attrs}
@@ -62,7 +63,7 @@
               ::title ~(str test-sym)
               ::ns '~(symbol (str *ns*))
               ::line ~(:line (meta &form))
-              ::steps (vector ~@steps)))))
+              ::steps (vec (flatten (vector ~@steps)))))))
 
 
 ;; ## Test Results
