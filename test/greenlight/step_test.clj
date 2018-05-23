@@ -17,6 +17,6 @@
 (deftest test-valid-context
   (let [[{::step/keys [outcome]}] (step/advance!
                                     {}
-                                    #::step {:test (constantly {})}
+                                    #::step{:test (constantly {})}
                                     {})]
     (is (= :pass outcome))))
