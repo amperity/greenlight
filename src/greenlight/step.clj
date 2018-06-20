@@ -19,6 +19,19 @@
 (s/def ::components
   (s/map-of keyword? keyword?))
 
+(s/def ::selector
+  (s/or :kw keyword?
+        :fn fn?))
+
+(s/def ::component
+  keyword?)
+
+(s/def ::inputs
+  (s/map-of keyword?
+            (s/or :selector (s/keys :req [::selector])
+                  :component (s/keys :req [::component])
+                  :value any?)))
+
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
 (s/def ::timeout pos-int?)
@@ -111,7 +124,7 @@
 ;; ## Execution Facilities
 
 
-(defn collect-inputs
+(defn- collect-inputs
   [system ctx step]
   (reduce-kv
     (fn [m k v]
@@ -138,6 +151,37 @@
           (assoc m k v)))
     {}
     (::inputs step)))
+
+
+(defn- collect-inputs
+  [system ctx step]
+  (reduce-kv
+    (fn [m k [t v]]
+      (assoc
+        m k
+        (case t
+          :value v
+          :component
+          (or (get system (::component v))
+              (throw (ex-info
+                       (format "Step %s depends on %s component %s which is not available in the test system: %s"
+                               (::name step) k (::component v) (str/join " " (keys system)))
+                       {:name (::name step)
+                        :key k
+                        :component (:component v)})))
+          :selector
+          (or (let [[conformed-type x] (::selector v)]
+                (case conformed-type
+                  :kw (get ctx x)
+                  :fn (x ctx)))
+              (throw (ex-info
+                       (format "Step %s depends on %s context key %s which is not available in the context: %s"
+                               (::name step) k v (str/join " " (keys ctx)))
+                       {:name (::name step)
+                        :key k
+                        :selector v}))))))
+    {}
+    (s/conform ::inputs (::inputs step))))
 
 
 (defn advance!
