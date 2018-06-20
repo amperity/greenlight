@@ -110,23 +110,34 @@
 
 ;; ## Execution Facilities
 
-(defn- collect-components
-  "Gather a map of the component dependencies specified by the test step.
-  Returns a map from the component keys to their resolved values, or throws an
-  exception if not all components are available."
-  [system step]
+
+(defn collect-inputs
+  [system ctx step]
   (reduce-kv
     (fn [m k v]
-      (if-let [c (get system v)]
-        (assoc m k c)
-        (throw (ex-info
-                 (format "Step %s depends on %s component %s which is not available in the test system: %s"
-                         (::name step) k v (str/join " " (keys system)))
-                 {:name (::name step)
-                  :key k
-                  :component v}))))
+      (cond
+        (::component v)
+          (if-let [c (get system (::component v))]
+            (assoc m k c)
+            (throw (ex-info
+                     (format "Step %s depends on %s component %s which is not available in the test system: %s"
+                             (::name step) k (::component v) (str/join " " (keys system)))
+                     {:name (::name step)
+                      :key k
+                      :component v})))
+        (::selector v)
+          (if-let [c (get ctx (::selector v))]
+            (assoc m k c)
+            (throw (ex-info
+                     (format "Step %s depends on %s context key %s which is not available in the context: %s"
+                             (::name step) k (::selector v) (str/join " " (keys ctx)))
+                     {:name (::name step)
+                      :key k
+                      :selector v})))
+        :else
+          (assoc m k v)))
     {}
-    (::components step)))
+    (::inputs step)))
 
 
 (defn advance!
@@ -147,8 +158,8 @@
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
-              components (collect-components system step)
-              step-future (future (test-fn step components ctx))
+              inputs (collect-inputs system ctx step)
+              step-future (future (test-fn inputs ctx))
               ctx' (deref step-future (* 1000 timeout) ::timeout)]
           (if (= ctx' ::timeout)
             (do
@@ -180,3 +191,13 @@
                      (.getSimpleName (class ex))
                      (.getMessage ex)))
            ctx])))))
+
+
+(defn lookup
+  [k]
+  {::selector k})
+
+
+(defn component
+  [k]
+  {::component k})
