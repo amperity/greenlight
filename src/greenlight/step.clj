@@ -166,7 +166,7 @@
                         :key k
                         :context-selector (::context-selector v)}))))))
     {}
-    (s/conform ::inputs (::inputs step))))
+    (s/conform ::inputs (::inputs step {}))))
 
 
 (defn advance!
