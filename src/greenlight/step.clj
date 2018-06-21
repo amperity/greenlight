@@ -14,13 +14,6 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
-;; DEPRECATED: See ::inputs
-;; Component dependencies required by the step. This should
-;; be a map of local keys to component ids.
-(s/def ::components
-  (s/map-of keyword? keyword?))
-
-
 ;; Selector for resolving a value from step context. Can
 ;; be a keyword to resolve with `get` or a collection for `get-in`.
 (s/def ::context-selector
@@ -39,6 +32,10 @@
                   :component (s/keys :req [::component])
                   :value any?)))
 
+(s/def ::output
+  (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1)))
+
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
 (s/def ::timeout pos-int?)
@@ -54,7 +51,6 @@
                 ::title
                 ::test]
           :opts [::inputs
-                 ::components
                  ::timeout]))
 
 
@@ -179,14 +175,7 @@
                         :key k
                         :context-selector (::context-selector v)}))))))
     {}
-    (s/conform
-      ::inputs
-      (merge
-        ;; backwards compatiblity
-        (into {} (map (fn [[k v]]
-                        [k (component v)]))
-              (::components step))
-        (::inputs step {})))))
+    (s/conform ::inputs (::inputs step {}))))
 
 
 (defn advance!
@@ -201,16 +190,19 @@
                             ::message %2
                             ::cleanup @*pending-cleanups*
                             ::elapsed @elapsed
-                            ::reports @reports)]
+                            ::reports @reports)
+        output-ctx #(if-let [output-key (::output step)]
+                      (assoc ctx output-key %)
+                      ctx)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
               inputs (collect-inputs system ctx step)
-              step-future (future (test-fn inputs ctx))
-              ctx' (deref step-future (* 1000 timeout) ::timeout)]
-          (if (= ctx' ::timeout)
+              step-future (future (test-fn inputs))
+              output (deref step-future (* 1000 timeout) ::timeout)]
+          (if (= output ::timeout)
             (do
               (future-cancel step-future)
               [(output-step
@@ -220,9 +212,6 @@
             (let [report-types (group-by :type @reports)
                   passed? (and (empty? (:fail report-types))
                                (empty? (:error report-types)))]
-              (when-not (map? ctx')
-                (throw
-                  (ex-info "Returned context from step is not a map. Did you forget to return it?" {:ctx ctx'})))
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
@@ -232,7 +221,7 @@
                       (str/join ", ")
                       (format "%d assertions (%s)"
                               (count @reports))))
-               ctx'])))
+               (output-ctx output)])))
         (catch Exception ex
           [(output-step
              :error

@@ -13,21 +13,21 @@
           :inputs {:foo 1
                    :bar 2
                    :baz 3}
-          :test (fn [{:keys [foo bar baz]} ctx]
+          :output ::qux
+          :test (fn [{:keys [foo bar baz]}]
                   (is (= 1 foo))
                   (is (= 2 bar))
                   (is (= 3 baz))
-                  (assoc ctx ::qux 4))}
+                  4)}
   #::step{:name 'another-step
           :title "Another Step"
           :inputs {:x (step/lookup ::qux)
                    :y 5
                    :z (step/component ::component)}
-          :test (fn [{:keys [x y z]} ctx]
+          :test (fn [{:keys [x y z]}]
                   (is (= 4 x))
                   (is (= 5 y))
-                  (is (= 6 z))
-                  ctx)})
+                  (is (= 6 z)))})
 
 
 (deftest sample-test
