@@ -22,7 +22,7 @@
   keyword?)
 
 ;; Map of inputs for test function. Value can be
-;; a value, component or context selector.
+;; a value, component or context key.
 (s/def ::inputs
   (s/map-of keyword?
             (s/or :context-key (s/keys :req [::context-key])
@@ -30,7 +30,8 @@
                   :value any?)))
 
 (s/def ::output
-  ::context-key)
+  (s/or :kw ::context-key
+        :fn fn?))
 
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
@@ -133,6 +134,34 @@
 ;; ## Execution Facilities
 
 
+(defn- resolve-context!
+  [step ctx k context-key]
+  (let [result (get ctx context-key ::missing)]
+    (if (not= ::missing result)
+      result
+      (throw
+        (ex-info
+          (format "Step %s depends on %s context key %s which is not available in the context: %s"
+                  (::name step) k context-key (str/join " " (keys ctx)))
+          {:name (::name step)
+           :key k
+           :context-key context-key})))))
+
+
+(defn- resolve-component!
+  [step system k component-key]
+  (let [result (get system component-key ::missing)]
+    (if (not= ::missing result)
+      result
+      (throw
+        (ex-info
+          (format "Step %s depends on %s component %s which is not available in the system: %s"
+                  (::name step) k component-key (str/join " " (keys system)))
+          {:name (::name step)
+           :key k
+           :component-key component-key})))))
+
+
 (defn- collect-inputs
   [system ctx step]
   (reduce-kv
@@ -141,24 +170,11 @@
         m k
         (case t
           :value v
-          :component
-          (or (get system (::component v))
-              (throw (ex-info
-                       (format "Step %s depends on %s component %s which is not available in the test system: %s"
-                               (::name step) k (::component v) (str/join " " (keys system)))
-                       {:name (::name step)
-                        :key k
-                        :component (::component v)})))
-          :context-key
-          (or (get ctx (::context-key v))
-              (throw (ex-info
-                       (format "Step %s depends on %s context key %s which is not available in the context: %s"
-                               (::name step) k (::context-key v) (str/join " " (keys ctx)))
-                       {:name (::name step)
-                        :key k
-                        :context-key (::context-key v)}))))))
+          :component (resolve-component! step system k (::component v))
+          :context-key (resolve-context! step ctx k (::context-key v)))))
     {}
     (s/conform ::inputs (::inputs step {}))))
+
 
 
 (defn advance!
@@ -175,7 +191,10 @@
                             ::elapsed @elapsed
                             ::reports @reports)
         output-ctx #(if-let [output-key (::output step)]
-                      (assoc ctx output-key %)
+                      (let [[t x] (s/conform ::output output-key)]
+                        (case t
+                          :kw (assoc ctx output-key %)
+                          :fn (x ctx %)))
                       ctx)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]

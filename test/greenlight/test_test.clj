@@ -21,16 +21,30 @@
                   4)}
   #::step{:name 'another-step
           :title "Another Step"
-          :inputs {:x (step/lookup ::qux)
-                   :y 5
-                   :z (step/component ::component)}
-          :test (fn [{:keys [x y z]}]
-                  (is (= 4 x))
-                  (is (= 5 y))
-                  (is (= 6 z)))})
+          :output merge
+          :inputs {:a (step/lookup ::qux)
+                   :b 5
+                   :c (step/component ::component)}
+          :test (fn [{:keys [a b c]}]
+                  (is (= 4 a))
+                  (is (= 5 b))
+                  (is (= 6 c))
+                  {:d (* 2 a)
+                   :e (* 2 b)
+                   :f (* 2 c)})}
+  [#::step{:name 'third-step
+           :title "Third Step"
+           :inputs {:x (step/lookup :d)
+                    :y (step/lookup :e)
+                    :z (step/lookup :f)}
+           :test (fn [{:keys [x y z]}]
+                   (is (= 8 x))
+                   (is (= 10 y))
+                   (is (= 12 z)))}])
 
 
 (deftest sample-test
   (let [system (component/system-map ::component 6)
         test-result (test/run-test! system (sample-greenlight-test))]
-    (is (= :pass (::test/outcome test-result)))))
+    (is (= :pass (::test/outcome test-result)))
+    (is (= 3 (count (::test/steps test-result))))))
