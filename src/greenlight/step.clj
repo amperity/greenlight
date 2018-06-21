@@ -14,13 +14,21 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
+;; Selector for resolving a value from step context. Can
+;; be a keyword to resolve with `get`, a collection for `get-in`,
+;; or a function.
 (s/def ::context-selector
   (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1)
         :fn fn?))
 
+
+;; System component keyword
 (s/def ::component
   keyword?)
 
+;; Map of inputs for test function. Value can be
+;; a value, component or context selector.
 (s/def ::inputs
   (s/map-of keyword?
             (s/or :context-selector (s/keys :req [::context-selector])
@@ -138,6 +146,7 @@
   (let [[conformed-type x] context-selector]
     (case conformed-type
       :kw (get ctx x)
+      :kws (get-in ctx x)
       :fn (x ctx))))
 
 
