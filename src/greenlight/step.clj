@@ -14,11 +14,8 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
-;; Selector for resolving a value from step context. Can
-;; be a keyword to resolve with `get` or a collection for `get-in`.
-(s/def ::context-selector
-  (s/or :kw keyword?
-        :kws (s/coll-of any? :min-count 1)))
+(s/def ::context-key
+  keyword?)
 
 ;; System component keyword
 (s/def ::component
@@ -28,13 +25,12 @@
 ;; a value, component or context selector.
 (s/def ::inputs
   (s/map-of keyword?
-            (s/or :context-selector (s/keys :req [::context-selector])
+            (s/or :context-key (s/keys :req [::context-key])
                   :component (s/keys :req [::component])
                   :value any?)))
 
 (s/def ::output
-  (s/or :kw keyword?
-        :kws (s/coll-of any? :min-count 1)))
+  ::context-key)
 
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
@@ -93,7 +89,7 @@
 
 (defn lookup
   [k]
-  {::context-selector k})
+  {::context-key k})
 
 
 (defn component
@@ -137,19 +133,6 @@
 ;; ## Execution Facilities
 
 
-(defn- extract-component
-  [{::keys [component]} system]
-  (get system component))
-
-
-(defn- extract-from-context
-  [{::keys [context-selector]} ctx]
-  (let [[conformed-type x] context-selector]
-    (case conformed-type
-      :kw (get ctx x)
-      :kws (get-in ctx x))))
-
-
 (defn- collect-inputs
   [system ctx step]
   (reduce-kv
@@ -159,21 +142,21 @@
         (case t
           :value v
           :component
-          (or (extract-component v system)
+          (or (get system (::component v))
               (throw (ex-info
                        (format "Step %s depends on %s component %s which is not available in the test system: %s"
                                (::name step) k (::component v) (str/join " " (keys system)))
                        {:name (::name step)
                         :key k
                         :component (::component v)})))
-          :context-selector
-          (or (extract-from-context v ctx)
+          :context-key
+          (or (get ctx (::context-key v))
               (throw (ex-info
                        (format "Step %s depends on %s context key %s which is not available in the context: %s"
-                               (::name step) k (::context-selector v) (str/join " " (keys ctx)))
+                               (::name step) k (::context-key v) (str/join " " (keys ctx)))
                        {:name (::name step)
                         :key k
-                        :context-selector (::context-selector v)}))))))
+                        :context-key (::context-key v)}))))))
     {}
     (s/conform ::inputs (::inputs step {}))))
 
