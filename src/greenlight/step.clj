@@ -14,12 +14,7 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
-;; Component dependencies required by the step. This should
-;; be a map of local keys to component ids.
-(s/def ::components
-  (s/map-of keyword? keyword?))
-
-(s/def ::selector
+(s/def ::context-selector
   (s/or :kw keyword?
         :fn fn?))
 
@@ -28,7 +23,7 @@
 
 (s/def ::inputs
   (s/map-of keyword?
-            (s/or :selector (s/keys :req [::selector])
+            (s/or :context-selector (s/keys :req [::context-selector])
                   :component (s/keys :req [::component])
                   :value any?)))
 
@@ -46,7 +41,7 @@
   (s/keys :req [::name
                 ::title
                 ::test]
-          :opts [::components
+          :opts [::inputs
                  ::timeout]))
 
 
@@ -87,6 +82,15 @@
                 ::reports]))
 
 
+(defn lookup
+  [k]
+  {::context-selector k})
+
+
+(defn component
+  [k]
+  {::component k})
+
 
 ;; ## Resource Cleanup
 
@@ -124,33 +128,17 @@
 ;; ## Execution Facilities
 
 
-(defn- collect-inputs
-  [system ctx step]
-  (reduce-kv
-    (fn [m k v]
-      (cond
-        (::component v)
-          (if-let [c (get system (::component v))]
-            (assoc m k c)
-            (throw (ex-info
-                     (format "Step %s depends on %s component %s which is not available in the test system: %s"
-                             (::name step) k (::component v) (str/join " " (keys system)))
-                     {:name (::name step)
-                      :key k
-                      :component v})))
-        (::selector v)
-          (if-let [c (get ctx (::selector v))]
-            (assoc m k c)
-            (throw (ex-info
-                     (format "Step %s depends on %s context key %s which is not available in the context: %s"
-                             (::name step) k (::selector v) (str/join " " (keys ctx)))
-                     {:name (::name step)
-                      :key k
-                      :selector v})))
-        :else
-          (assoc m k v)))
-    {}
-    (::inputs step)))
+(defn- extract-component
+  [{::keys [component]} system]
+  (get system component))
+
+
+(defn- extract-from-context
+  [{::keys [context-selector]} ctx]
+  (let [[conformed-type x] context-selector]
+    (case conformed-type
+      :kw (get ctx x)
+      :fn (x ctx))))
 
 
 (defn- collect-inputs
@@ -162,24 +150,21 @@
         (case t
           :value v
           :component
-          (or (get system (::component v))
+          (or (extract-component v system)
               (throw (ex-info
                        (format "Step %s depends on %s component %s which is not available in the test system: %s"
                                (::name step) k (::component v) (str/join " " (keys system)))
                        {:name (::name step)
                         :key k
-                        :component (:component v)})))
-          :selector
-          (or (let [[conformed-type x] (::selector v)]
-                (case conformed-type
-                  :kw (get ctx x)
-                  :fn (x ctx)))
+                        :component (::component v)})))
+          :context-selector
+          (or (extract-from-context v ctx)
               (throw (ex-info
                        (format "Step %s depends on %s context key %s which is not available in the context: %s"
-                               (::name step) k v (str/join " " (keys ctx)))
+                               (::name step) k (::context-selector v) (str/join " " (keys ctx)))
                        {:name (::name step)
                         :key k
-                        :selector v}))))))
+                        :context-selector (::context-selector v)}))))))
     {}
     (s/conform ::inputs (::inputs step))))
 
@@ -235,13 +220,3 @@
                      (.getSimpleName (class ex))
                      (.getMessage ex)))
            ctx])))))
-
-
-(defn lookup
-  [k]
-  {::selector k})
-
-
-(defn component
-  [k]
-  {::component k})
