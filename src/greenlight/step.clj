@@ -15,7 +15,9 @@
 (s/def ::title string?)
 
 (s/def ::context-key
-  keyword?)
+  (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1)
+        :fn fn?))
 
 ;; System component keyword
 (s/def ::component
@@ -30,7 +32,8 @@
                   :value any?)))
 
 (s/def ::output
-  (s/or :kw ::context-key
+  (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1)
         :fn fn?))
 
 ;; The timeout defines the maximum amount of time that the step will be allowed
@@ -136,7 +139,11 @@
 
 (defn- resolve-context!
   [step ctx k context-key]
-  (let [result (get ctx context-key ::missing)]
+  (let [[t key] context-key
+        result (case t
+                 :kw (get ctx key ::missing)
+                 :kws (get-in ctx key ::missing)
+                 :fn (key ctx))]
     (if (not= ::missing result)
       result
       (throw
@@ -176,7 +183,6 @@
     (s/conform ::inputs (::inputs step {}))))
 
 
-
 (defn advance!
   "Advance the test by performing the next step. Returns a tuple of the
   enriched step map and updated context."
@@ -194,7 +200,8 @@
                       (let [[t x] (s/conform ::output output-key)]
                         (case t
                           :kw (assoc ctx output-key %)
-                          :fn (x ctx %)))
+                          :kws (assoc-in ctx output-key %)
+                          :fn (output-key ctx %)))
                       ctx)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]
