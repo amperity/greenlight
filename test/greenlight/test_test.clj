@@ -21,7 +21,8 @@
                   4)}
   #::step{:name 'another-step
           :title "Another Step"
-          :output merge
+          :output (fn [ctx outputs]
+                    (merge outputs ctx))
           :inputs {:a (step/lookup ::qux)
                    :b 5
                    :c (step/component ::component)}
