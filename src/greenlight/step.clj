@@ -190,6 +190,17 @@
     (s/conform ::inputs (::inputs step {}))))
 
 
+(defn- collect-outputs
+  [step ctx step-result]
+  (if-let [output-key (::output step)]
+    (let [[t x] (s/conform ::output output-key)]
+      (case t
+        :kw (assoc ctx output-key step-result)
+        :kws (assoc-in ctx output-key step-result)
+        :fn (output-key ctx step-result)))
+    ctx))
+
+
 (defn advance!
   "Advance the test by performing the next step. Returns a tuple of the
   enriched step map and updated context."
@@ -202,14 +213,7 @@
                             ::message %2
                             ::cleanup @*pending-cleanups*
                             ::elapsed @elapsed
-                            ::reports @reports)
-        output-ctx #(if-let [output-key (::output step)]
-                      (let [[t x] (s/conform ::output output-key)]
-                        (case t
-                          :kw (assoc ctx output-key %)
-                          :kws (assoc-in ctx output-key %)
-                          :fn (output-key ctx %)))
-                      ctx)]
+                            ::reports @reports)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]
       (try
@@ -237,7 +241,7 @@
                       (str/join ", ")
                       (format "%d assertions (%s)"
                               (count @reports))))
-               (output-ctx output)])))
+               (collect-outputs step ctx output)])))
         (catch Exception ex
           [(output-step
              :error

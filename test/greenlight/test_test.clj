@@ -50,6 +50,5 @@
 (deftest sample-test
   (let [system (component/system-map ::component 6)
         test-result (test/run-test! system (sample-greenlight-test))]
-    (is (= :pass (::test/outcome test-result))
-        (with-out-str (clojure.pprint/pprint test-result)))
+    (is (= :pass (::test/outcome test-result)))
     (is (= 3 (count (::test/steps test-result))))))
