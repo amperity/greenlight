@@ -18,7 +18,7 @@
 ;; a collection of values for `get-in`, or a function of the context.
 (s/def ::context-key
   (s/or :kw keyword?
-        :kws (s/coll-of any? :min-count 1)
+        :kws (s/coll-of any? :min-count 1 :kind sequential?)
         :fn fn?))
 
 ;; System component keyword
@@ -37,7 +37,7 @@
 ;; a collection of values as keys, or a function (ctx, return-value) -> ctx'
 (s/def ::output
   (s/or :kw keyword?
-        :kws (s/coll-of any? :min-count 1)
+        :kws (s/coll-of any? :min-count 1 :kind sequential?)
         :fn fn?))
 
 ;; The timeout defines the maximum amount of time that the step will be allowed
