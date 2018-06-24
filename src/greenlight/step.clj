@@ -14,6 +14,8 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
+;; Used for context lookups. Can be a keyword for direct access,
+;; a collection of values for `get-in`, or a function of the context.
 (s/def ::context-key
   (s/or :kw keyword?
         :kws (s/coll-of any? :min-count 1)
@@ -31,6 +33,8 @@
                   :component (s/keys :req [::component])
                   :value any?)))
 
+;; Output result to store in step context. Can be a keyword,
+;; a collection of values as keys, or a function (ctx, return-value) -> ctx'
 (s/def ::output
   (s/or :kw keyword?
         :kws (s/coll-of any? :min-count 1)
@@ -92,13 +96,16 @@
 
 
 (defn lookup
-  [k]
-  {::context-key k})
+  "Look up a context value in the step context. A context key can be either
+  a keyword, a collection of values for `get-in`, or a function of the context."
+  [context-key]
+  {::context-key context-key})
 
 
 (defn component
-  [k]
-  {::component k})
+  "Look up a system component by key. `component-key` should be a keyword."
+  [component-key]
+  {::component component-key})
 
 
 ;; ## Resource Cleanup
