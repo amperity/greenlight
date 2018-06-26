@@ -78,7 +78,8 @@
   Usage:
 
   (defstep create-foo
-    :title 'create-foo
+    :name 'create-foo
+    :title \"Create a Foo object\"
     :test (fn ...)
     :inputs {:foo/name \"Test Foo\"}
     :output :foo/id)
@@ -99,7 +100,7 @@
        ~docstring
        [~'inputs & {:as ~'config}]
        (merge
-         {::title '~step-name
+         {::name '~step-name
           ::inputs (merge
                      ~(::inputs default-config)
                      ~'inputs)}
