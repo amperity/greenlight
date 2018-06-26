@@ -58,7 +58,48 @@
                  ::timeout]))
 
 
-; TODO: defstep macro or step config constructor?
+(defn qualify-config-keys
+  "Takes a map, and prefixes all unnamespaced keywords with greenlight.step."
+  [step-config]
+  (->> step-config
+       (map (fn [[k v]]
+              [(if (and (keyword? k) (not (namespace k)))
+                 (keyword "greenlight.step" (name k))
+                 k)
+               v]))
+       (into {})))
+
+
+(defmacro defstep
+  "Takes a default step configuration for a reusable step, and defines
+  a constructor that allows optional overrides to the inputs and step
+  parameters.
+
+  Usage:
+
+  (defstep create-foo
+    :title 'create-foo
+    :test (fn ...)
+    :inputs {:foo/name \"Test Foo\"}
+    :output :foo/id)
+
+  (create-foo {})
+  (create-foo
+    {:foo/name \"Custom Foo\"})
+  (create-foo
+    {:foo/name \"Foo 1\"}
+    :output :foo.1/id)"
+  [step-name & {:as default-config}]
+  (let [default-config (qualify-config-keys default-config)]
+    `(defn ~step-name
+       [~'inputs & {:as ~'config}]
+       (merge
+         {::title '~step-name
+          ::inputs (merge
+                     ~(::inputs default-config)
+                     ~'inputs)}
+         ~(dissoc default-config ::inputs)
+         (qualify-config-keys ~'config)))))
 
 
 
