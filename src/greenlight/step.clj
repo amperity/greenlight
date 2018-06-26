@@ -89,9 +89,14 @@
   (create-foo
     {:foo/name \"Foo 1\"}
     :output :foo.1/id)"
-  [step-name & {:as default-config}]
-  (let [default-config (qualify-config-keys default-config)]
+  [step-name docstring & default-config]
+  (when-not (string? docstring)
+    (throw (IllegalArgumentException.
+             "defstep expects a docstring for the step constructor")))
+  (let [default-config (qualify-config-keys
+                         (apply hash-map default-config))]
     `(defn ~step-name
+       ~docstring
        [~'inputs & {:as ~'config}]
        (merge
          {::title '~step-name
