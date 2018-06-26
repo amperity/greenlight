@@ -145,6 +145,8 @@
 
 
 (defn- resolve-context!
+  "Resolves a context value for a given step based on the `context-key`.
+  Throws if the key is not present in the ctx map."
   [step ctx k context-key]
   (let [[t key] context-key
         result (case t
@@ -163,6 +165,8 @@
 
 
 (defn- resolve-component!
+  "Resolves a system component for a given step based on the `component-key`.
+  Throws if the key is not present in the system."
   [step system k component-key]
   (let [result (get system component-key ::missing)]
     (if (not= ::missing result)
@@ -177,6 +181,8 @@
 
 
 (defn- collect-inputs
+  "Collect inputs for a step's test function. Resolves all context and component values.
+  Throws if a context or component key is not resolvable."
   [system ctx step]
   (reduce-kv
     (fn [m k [t v]]
@@ -191,6 +197,8 @@
 
 
 (defn- save-output
+  "Store the output of a step back into the context if a step has an output registered.
+  Otherwise, returns the context unmodified."
   [step ctx step-result]
   (if-let [output-key (::output step)]
     (let [[t x] (s/conform ::output output-key)]
