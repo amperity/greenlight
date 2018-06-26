@@ -14,10 +14,31 @@
 ;; Human friendly title string for the step.
 (s/def ::title string?)
 
-;; Component dependencies required by the step. This should
-;; be a map of local keys to component ids.
-(s/def ::components
-  (s/map-of keyword? keyword?))
+;; Used for context lookups. Can be a keyword for direct access,
+;; a collection of values for `get-in`, or a function of the context.
+(s/def ::context-key
+  (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1 :kind sequential?)
+        :fn fn?))
+
+;; System component keyword
+(s/def ::component
+  keyword?)
+
+;; Map of inputs for test function. Value can be
+;; a value, component or context key.
+(s/def ::inputs
+  (s/map-of keyword?
+            (s/or :context-key (s/keys :req [::context-key])
+                  :component (s/keys :req [::component])
+                  :value any?)))
+
+;; Output result to store in step context. Can be a keyword,
+;; a collection of values as keys, or a function (ctx, return-value) -> ctx'
+(s/def ::output
+  (s/or :kw keyword?
+        :kws (s/coll-of any? :min-count 1 :kind sequential?)
+        :fn fn?))
 
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
@@ -33,7 +54,7 @@
   (s/keys :req [::name
                 ::title
                 ::test]
-          :opts [::components
+          :opts [::inputs
                  ::timeout]))
 
 
@@ -74,6 +95,18 @@
                 ::reports]))
 
 
+(defn lookup
+  "Look up a context value in the step context. A context key can be either
+  a keyword, a collection of values for `get-in`, or a function of the context."
+  [context-key]
+  {::context-key context-key})
+
+
+(defn component
+  "Look up a system component by key. `component-key` should be a keyword."
+  [component-key]
+  {::component component-key})
+
 
 ;; ## Resource Cleanup
 
@@ -110,23 +143,70 @@
 
 ;; ## Execution Facilities
 
-(defn- collect-components
-  "Gather a map of the component dependencies specified by the test step.
-  Returns a map from the component keys to their resolved values, or throws an
-  exception if not all components are available."
-  [system step]
+
+(defn- resolve-context!
+  "Resolves a context value for a given step based on the `context-key`.
+  Throws if the key is not present in the ctx map."
+  [step ctx k context-key]
+  (let [[t key] context-key
+        result (case t
+                 :kw (get ctx key ::missing)
+                 :kws (get-in ctx key ::missing)
+                 :fn (key ctx))]
+    (if (not= ::missing result)
+      result
+      (throw
+        (ex-info
+          (format "Step %s depends on %s context key %s which is not available in the context: %s"
+                  (::name step) k context-key (str/join " " (keys ctx)))
+          {:name (::name step)
+           :key k
+           :context-key context-key})))))
+
+
+(defn- resolve-component!
+  "Resolves a system component for a given step based on the `component-key`.
+  Throws if the key is not present in the system."
+  [step system k component-key]
+  (let [result (get system component-key ::missing)]
+    (if (not= ::missing result)
+      result
+      (throw
+        (ex-info
+          (format "Step %s depends on %s component %s which is not available in the system: %s"
+                  (::name step) k component-key (str/join " " (keys system)))
+          {:name (::name step)
+           :key k
+           :component-key component-key})))))
+
+
+(defn- collect-inputs
+  "Collect inputs for a step's test function. Resolves all context and component values.
+  Throws if a context or component key is not resolvable."
+  [system ctx step]
   (reduce-kv
-    (fn [m k v]
-      (if-let [c (get system v)]
-        (assoc m k c)
-        (throw (ex-info
-                 (format "Step %s depends on %s component %s which is not available in the test system: %s"
-                         (::name step) k v (str/join " " (keys system)))
-                 {:name (::name step)
-                  :key k
-                  :component v}))))
+    (fn [m k [t v]]
+      (assoc
+        m k
+        (case t
+          :value v
+          :component (resolve-component! step system k (::component v))
+          :context-key (resolve-context! step ctx k (::context-key v)))))
     {}
-    (::components step)))
+    (s/conform ::inputs (::inputs step {}))))
+
+
+(defn- save-output
+  "Store the output of a step back into the context if a step has an output registered.
+  Otherwise, returns the context unmodified."
+  [step ctx step-result]
+  (if-let [output-key (::output step)]
+    (let [[t x] (s/conform ::output output-key)]
+      (case t
+        :kw (assoc ctx output-key step-result)
+        :kws (assoc-in ctx output-key step-result)
+        :fn (output-key ctx step-result)))
+    ctx))
 
 
 (defn advance!
@@ -147,10 +227,10 @@
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
-              components (collect-components system step)
-              step-future (future (test-fn step components ctx))
-              ctx' (deref step-future (* 1000 timeout) ::timeout)]
-          (if (= ctx' ::timeout)
+              inputs (collect-inputs system ctx step)
+              step-future (future (test-fn inputs))
+              output (deref step-future (* 1000 timeout) ::timeout)]
+          (if (= output ::timeout)
             (do
               (future-cancel step-future)
               [(output-step
@@ -160,9 +240,6 @@
             (let [report-types (group-by :type @reports)
                   passed? (and (empty? (:fail report-types))
                                (empty? (:error report-types)))]
-              (when-not (map? ctx')
-                (throw
-                  (ex-info "Returned context from step is not a map. Did you forget to return it?" {:ctx ctx'})))
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
@@ -172,7 +249,7 @@
                       (str/join ", ")
                       (format "%d assertions (%s)"
                               (count @reports))))
-               ctx'])))
+               (save-output step ctx output)])))
         (catch Exception ex
           [(output-step
              :error
