@@ -205,7 +205,7 @@
       (throw
         (ex-info
           (format "Step %s depends on %s context key %s which is not available in the context: %s"
-                  (::name step) k context-key (str/join " " (keys ctx)))
+                  (::name step) k key (str/join " " (keys ctx)))
           {:name (::name step)
            :key k
            :context-key context-key})))))
