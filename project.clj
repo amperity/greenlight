@@ -5,6 +5,9 @@
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
 
   :deploy-branches ["master"]
+  :aliases
+  {"coverage" ["with-profile" "+test,+coverage" "cloverage"]}
+
   :pedantic? :abort
 
   :dependencies
@@ -18,6 +21,10 @@
   {:metadata {:doc/format :markdown}
    :source-uri "https://github.com/amperity/greenlight/blob/master/{filepath}#L{line}"
    :output-path "target/doc/codox"}
+
+  :plugins
+  [[lein-codox "0.9.5"]
+   [lein-cloverage "1.0.9"]]
 
   :profiles
   {:repl
