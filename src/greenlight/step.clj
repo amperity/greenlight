@@ -190,7 +190,7 @@
     (s/conform ::inputs (::inputs step {}))))
 
 
-(defn- collect-outputs
+(defn- save-output
   [step ctx step-result]
   (if-let [output-key (::output step)]
     (let [[t x] (s/conform ::output output-key)]
@@ -241,7 +241,7 @@
                       (str/join ", ")
                       (format "%d assertions (%s)"
                               (count @reports))))
-               (collect-outputs step ctx output)])))
+               (save-output step ctx output)])))
         (catch Exception ex
           [(output-step
              :error
