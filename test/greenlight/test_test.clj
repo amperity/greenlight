@@ -10,7 +10,7 @@
   :inputs {:foo 1
            :bar 2
            :baz -1}
-  :output [::foo ::bar ::baz]
+  ::step/output [::foo ::bar ::baz]
   :test (fn [{:keys [foo bar baz]}]
           (is (= 1 foo))
           (is (= 2 bar))
