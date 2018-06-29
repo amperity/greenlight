@@ -21,4 +21,4 @@ if [[ ! -d $DOC_TARGET ]]; then
 fi
 
 echo "Generating documentation in $DOC_TARGET ..."
-lein codox, marg --dir $DOC_TARGET/marginalia
+lein do codox, marg --dir $DOC_TARGET/marginalia
