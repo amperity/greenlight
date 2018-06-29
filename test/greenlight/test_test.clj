@@ -8,6 +8,7 @@
 
 (defstep sample-step
   "A sample step for testing `defstep`"
+  :title "Sample Step"
   :inputs {:foo 1
            :bar 2
            :baz -1}

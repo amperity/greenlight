@@ -79,7 +79,6 @@
 
   (defstep create-foo
     \"Creates a new foo\"
-    :name 'create-foo
     :title \"Create a Foo object\"
     :test (fn ...)
     :inputs {:foo/name \"Test Foo\"}
