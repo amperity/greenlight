@@ -85,6 +85,7 @@
     :inputs {:foo/name \"Test Foo\"}
     :output :foo/id)
 
+  (create-foo)
   (create-foo {})
   (create-foo
     {:foo/name \"Custom Foo\"})
@@ -99,14 +100,16 @@
                          (apply hash-map default-config))]
     `(defn ~step-name
        ~docstring
-       [~'inputs & {:as ~'config}]
-       (merge
-         {::name '~step-name
-          ::inputs (merge
-                     ~(::inputs default-config)
-                     ~'inputs)}
-         ~(dissoc default-config ::inputs)
-         (qualify-config-keys ~'config)))))
+       ([]
+        (~step-name {}))
+       ([~'inputs & {:as ~'config}]
+        (merge
+          {::name '~step-name
+           ::inputs (merge
+                      ~(::inputs default-config)
+                      ~'inputs)}
+          ~(dissoc default-config ::inputs)
+          (qualify-config-keys ~'config))))))
 
 
 
