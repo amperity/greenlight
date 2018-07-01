@@ -8,7 +8,7 @@ a suite of tests against your systems gives you the confidence to _greenlight_
 them for promotion to production. The primary goals of this framework are:
 
 - Steps should be _composable_ to drive down repetition in similar tests.
-- Tests should be _distributable_ and support parallelization out-of-the-box.
+- TODO: Tests should be _distributable_ and support parallelization out-of-the-box.
 - Results should be _actionable_ and easy to understand.
 
 
@@ -36,9 +36,7 @@ A quick overview of greenlight usage:
 (defstep math-test
   "A simple test step"
   :title "Simple Math Test"
-  :inputs {:a 1, :b 2}
-  :test (fn [{:keys [a b]}]
-          (is (= 3 (+ a b)))))
+  :test (fn [_] (is (= 3 (+ 1 2)))))
 => #'user/math-test
 
 (deftest simple-test
@@ -50,27 +48,28 @@ A quick overview of greenlight usage:
 
 (simple-test)
 => {:greenlight.test/description "A simple test of addition",
-    :greenlight.test/line 183,
+    :greenlight.test/line 14,
     :greenlight.test/ns user,
-    :greenlight.test/steps [{:greenlight.step/inputs {:a 1, :b 2},
+    :greenlight.test/steps [{:greenlight.step/inputs {},
                              :greenlight.step/name math-test,
-                             :greenlight.step/test #<Fn@1d37c1b9 user/math_test[fn]>,
+                             :greenlight.step/test #<Fn@7bb15aaa user/math_test[fn]>,
                              :greenlight.step/title "Simple Math Test"}],
     :greenlight.test/title "simple-test"}
+
 
 ;; Tests can be ran individually
 
 (test/run-test! {} (simple-test))
 => {:greenlight.test/context {},
     :greenlight.test/description "A simple test of addition",
-    :greenlight.test/ended-at #<java.time.Instant@5b71cfc4 2018-06-29T18:12:48.341Z>,
-    :greenlight.test/line 124,
+    :greenlight.test/ended-at #<java.time.Instant@55e7469c 2018-07-01T17:03:29.811Z>,
+    :greenlight.test/line 14,
     :greenlight.test/ns user,
     :greenlight.test/outcome :pass,
-    :greenlight.test/started-at #<java.time.Instant@3723fd20 2018-06-29T18:12:48.341Z>,
+    :greenlight.test/started-at #<java.time.Instant@224450d6 2018-07-01T17:03:29.808Z>,
     :greenlight.test/steps [{:greenlight.step/cleanup [],
-                             :greenlight.step/elapsed 1.75183E-4,
-                             :greenlight.step/inputs {:a 1, :b 2},
+                             :greenlight.step/elapsed 0.002573744,
+                             :greenlight.step/inputs {},
                              :greenlight.step/message "1 assertions (1 pass)",
                              :greenlight.step/name math-test,
                              :greenlight.step/outcome :pass,
@@ -78,7 +77,7 @@ A quick overview of greenlight usage:
                                                         :expected 3,
                                                         :message nil,
                                                         :type :pass}],
-                             :greenlight.step/test #<Fn@34c86dd4 user/math_test[fn]>,
+                             :greenlight.step/test #<Fn@2be25eaa user/math_test[fn]>,
                              :greenlight.step/title "Simple Math Test"}],
     :greenlight.test/title "simple-test"}
 
@@ -181,13 +180,6 @@ a collection of keys, or as a function of the previous context.
   :test (constantly 2)
   :output [:a :b :c])
 
-(defstep step-with-function-output
-  "A step demonstrating a function of outputs"
-  :title "Function output"
-  :test (constantly 3)
-  :output (fn [ctx test-output]
-            (assoc ctx :bar (* 2 test-output))))
-
 (defstep step-with-inputs
   "A step demonstrating different input types"
   :title "Step with inputs"
@@ -208,7 +200,12 @@ a collection of keys, or as a function of the previous context.
   "A test demonstrating inputs and outputs"
   (step-with-output-keyword)
   (step-with-collection-output)
-  (step-with-function-output)
+  ;; Steps can also be defined inline
+  #::step{:title "function output"
+          :name 'step-with-function-output
+          :test (constantly 3)
+          :output (fn [ctx test-output]
+                    (assoc ctx :bar (* 2 test-output)))}
   (step-with-inputs
     ;; Override step inputs
     {:a :override-default}
