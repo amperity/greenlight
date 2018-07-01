@@ -2,6 +2,7 @@ Greenlight
 ==========
 
 [![CircleCI](https://circleci.com/gh/amperity/greenlight.svg?style=shield&circle-token=f934dddbf0f63d20e4df86f42f671b6f067227c2)](https://circleci.com/gh/amperity/greenlight)
+[![codecov](https://codecov.io/gh/amperity/greenlight/branch/master/graph/badge.svg)](https://codecov.io/gh/amperity/greenlight)
 
 This library provides an _integration testing_ framework for Clojure. Running
 a suite of tests against your systems gives you the confidence to _greenlight_
