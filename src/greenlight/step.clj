@@ -12,7 +12,11 @@
 (s/def ::name symbol?)
 
 ;; Human friendly title string for the step.
-(s/def ::title string?)
+;; Can be supplied as a string or a function of the test context
+;; that returns a string.
+(s/def ::title
+  (s/or :str string?
+        :fn fn?))
 
 ;; Used for context lookups. Can be a keyword for direct access,
 ;; a collection of values for `get-in`, or a function of the context.
@@ -257,6 +261,13 @@
         :kws (assoc-in ctx output-key step-result)
         :fn (output-key ctx step-result)))
     ctx))
+
+
+(defn initialize
+  "Resolves contextual properties of a step prior to execution."
+  [step ctx]
+  (cond-> step
+    (fn? (::title step)) (update ::title #(% ctx))))
 
 
 (defn advance!

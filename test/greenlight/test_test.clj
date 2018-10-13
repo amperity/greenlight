@@ -46,7 +46,8 @@
                    :e (* 2 b)
                    :f (* 2 c)})}
   [#::step{:name 'third-step
-           :title "Third Step"
+           :title (fn [{:keys [d e f]}]
+                    (format "d: %s, e: %s, f: %s" d e f))
            :inputs {:x (step/lookup :d)
                     :y (step/lookup :e)
                     :z (step/lookup :f)}
@@ -59,5 +60,10 @@
 (deftest sample-test
   (let [system (component/system-map ::component 6)
         test-result (test/run-test! system (sample-greenlight-test))]
+    (is (= ["Sample Step"
+            "Sample Step"
+            "Another Step"
+            "d: 8, e: 10, f: 12"]
+           (mapv ::step/title (::test/steps test-result))))
     (is (= :pass (::test/outcome test-result)))
     (is (= 4 (count (::test/steps test-result))))))
