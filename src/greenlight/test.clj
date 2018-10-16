@@ -111,7 +111,8 @@
          steps steps]
     (if-let [step (first steps)]
       ; Run next step to advance the test.
-      (let [_ (*report* {:type :step-start
+      (let [step (step/initialize step ctx)
+            _ (*report* {:type :step-start
                          :step step})
             [step' ctx'] (step/advance! system step ctx)
             history' (conj history step')]
