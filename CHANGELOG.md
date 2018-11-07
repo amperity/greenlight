@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## 0.1.1 - 2018-11-06
+
 ### Added
 
 - Add the ability to specify a test's `title` as a function of the context, in
