@@ -58,10 +58,10 @@
 
 (defn filter-test-suite
   [test-suite arguments]
-  (if-let [is-only? (= ":only" (first arguments))]
+  (if (= ":only" (first arguments))
     (filter
       (comp (partial re-matches (re-pattern (second arguments))) name ::test/ns)
-      (find-tests))
+      test-suite)
     test-suite))
 
 
@@ -79,31 +79,32 @@
 
 (defn run-tests!
   "Run a collection of tests."
-  [new-system test-suite options arguments]
-  (let [tests (filter-test-suite test-suite arguments)]
-    (when-not (s/valid? ::test/suite tests)
-      (throw (IllegalArgumentException.
-              (str "Invalid test suite configuration: "
-                    (s/explain-str ::test/suite tests)))))
-    (println "Starting test system...")
-    (let [system (component/start (new-system))]
-      (try
-        (binding [test/*report* (partial report/handle-test-event
-                                        {:print-color (not (:no-color options))})]
-          (println "Running" (count tests) "tests...")
-          (let [results (mapv (partial test/run-test! system) tests)]
-            ; TODO: check result spec?
-            (newline)
-            (report-results results options)
-            (when-let [result-path (:output options)]
-              (println "Saving test results to" result-path)
-              ; FIXME: this results in unreadable data because it often includes
-              ; exceptions in the assertion reports.
-              (spit result-path (prn-str results)))
-            ; Successful if every test passed.
-            (every? (comp #{:pass} ::test/outcome) results)))
-        (finally
-          (component/stop system))))))
+  ([new-system test-suite options] (run-tests! new-system test-suite options []))
+  ([new-system test-suite options arguments]
+   (let [tests (filter-test-suite test-suite arguments)]
+     (when-not (s/valid? ::test/suite tests)
+       (throw (IllegalArgumentException.
+               (str "Invalid test suite configuration: "
+                     (s/explain-str ::test/suite tests)))))
+     (println "Starting test system...")
+     (let [system (component/start (new-system))]
+       (try
+         (binding [test/*report* (partial report/handle-test-event
+                                         {:print-color (not (:no-color options))})]
+           (println "Running" (count tests) "tests...")
+           (let [results (mapv (partial test/run-test! system) tests)]
+             ; TODO: check result spec?
+             (newline)
+             (report-results results options)
+             (when-let [result-path (:output options)]
+               (println "Saving test results to" result-path)
+               ; FIXME: this results in unreadable data because it often includes
+               ; exceptions in the assertion reports.
+               (spit result-path (prn-str results)))
+             ; Successful if every test passed.
+             (every? (comp #{:pass} ::test/outcome) results)))
+         (finally
+           (component/stop system)))))))
 
 
 (defn run-all-tests!
@@ -158,7 +159,7 @@
         (*exit* 1 (str/join "\n" errors))
 
       (or (:help options) (nil? command) (= "help" command))
-        (do (println "Usage: <command> [args...]")
+        (do (println "Usage: [opts] <command> [args...]")
             (newline)
             (println "Commands:")
             (println "  info [:only <namespace name>]")
