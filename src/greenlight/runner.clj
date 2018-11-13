@@ -22,16 +22,6 @@
 
 ;; ## Runner Commands
 
-(defn print-test-info
-  "Print out information about the suite of tests."
-  [tests options]
-  (printf "Found %d tests:\n" (count tests))
-  (doseq [test-case tests]
-    (printf "  %s (%d steps)\n"
-            (::test/title test-case)
-            (count (::test/steps test-case))))
-  true)
-
 
 (defn- report-results
   "Handle result reporting in a general fashion."
@@ -66,32 +56,55 @@
           (map (fn [v] (v)))))))
 
 
+(defn filter-test-suite
+  [test-suite arguments]
+  (if (= ":only" (first arguments))
+    (filter
+      (comp (partial re-matches (re-pattern (second arguments))) name ::test/ns)
+      test-suite)
+    test-suite))
+
+
+(defn print-test-info
+  "Print out information about the suite of tests."
+  [test-suite options arguments]
+  (let [tests (filter-test-suite test-suite arguments)]
+    (printf "Found %d tests:\n" (count tests))
+    (doseq [test-case tests]
+      (printf "  %s (%d steps)\n"
+              (::test/title test-case)
+              (count (::test/steps test-case))))
+    true))
+
+
 (defn run-tests!
   "Run a collection of tests."
-  [new-system tests options]
-  (when-not (s/valid? ::test/suite tests)
-    (throw (IllegalArgumentException.
-             (str "Invalid test suite configuration: "
-                  (s/explain-str ::test/suite tests)))))
-  (println "Starting test system...")
-  (let [system (component/start (new-system))]
-    (try
-      (binding [test/*report* (partial report/handle-test-event
-                                       {:print-color (not (:no-color options))})]
-        (println "Running" (count tests) "tests...")
-        (let [results (mapv (partial test/run-test! system) tests)]
-          ; TODO: check result spec?
-          (newline)
-          (report-results results options)
-          (when-let [result-path (:output options)]
-            (println "Saving test results to" result-path)
-            ; FIXME: this results in unreadable data because it often includes
-            ; exceptions in the assertion reports.
-            (spit result-path (prn-str results)))
-          ; Successful if every test passed.
-          (every? (comp #{:pass} ::test/outcome) results)))
-      (finally
-        (component/stop system)))))
+  ([new-system test-suite options] (run-tests! new-system test-suite options []))
+  ([new-system test-suite options arguments]
+   (let [tests (filter-test-suite test-suite arguments)]
+     (when-not (s/valid? ::test/suite tests)
+       (throw (IllegalArgumentException.
+               (str "Invalid test suite configuration: "
+                     (s/explain-str ::test/suite tests)))))
+     (println "Starting test system...")
+     (let [system (component/start (new-system))]
+       (try
+         (binding [test/*report* (partial report/handle-test-event
+                                         {:print-color (not (:no-color options))})]
+           (println "Running" (count tests) "tests...")
+           (let [results (mapv (partial test/run-test! system) tests)]
+             ; TODO: check result spec?
+             (newline)
+             (report-results results options)
+             (when-let [result-path (:output options)]
+               (println "Saving test results to" result-path)
+               ; FIXME: this results in unreadable data because it often includes
+               ; exceptions in the assertion reports.
+               (spit result-path (prn-str results)))
+             ; Successful if every test passed.
+             (every? (comp #{:pass} ::test/outcome) results)))
+         (finally
+           (component/stop system)))))))
 
 
 (defn run-all-tests!
@@ -149,14 +162,16 @@
         (do (println "Usage: [opts] <command> [args...]")
             (newline)
             (println "Commands:")
-            (println "  info")
-            (println "      Print out test information.")
-            (println "  test")
-            (println "      Run tests.")
+            (println "  info [:only <namespace name>]")
+            (println "      Print out information about all tests or only tests in the namespace provided.")
+            (println "  test [:only <namespace name>]")
+            (println "      Run all tests or only tests in the namespace provided")
             (println "  clean <result.edn> [...]")
             (println "      Clean up resources from previous test runs.")
             (println "  report <result.edn> [...]")
             (println "      Generate reports from a set of test results.")
+            (println "  help")
+            (println "      Print out this usage information.")
             (newline)
             (println summary)
             (*exit* (if (nil? command) 1 0)))
@@ -164,10 +179,10 @@
       :else
         (->
           (case command
-            "info" (print-test-info tests options)
-            "test" (run-tests! new-system tests options)
+            "info" (print-test-info tests options (rest arguments))
+            "test" (run-tests! new-system tests options (rest arguments))
             "clean" (clean-results! new-system options (rest arguments))
             "report" (generate-report options (rest arguments))
-            (*exit* 1 (str "The argument" (pr-str command) "is not a supported command")))
+            (*exit* 1 (str "The argument " (pr-str command) " is not a supported command")))
           (as-> result
             (*exit* (if result 0 1)))))))
