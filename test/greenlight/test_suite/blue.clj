@@ -1,6 +1,7 @@
 (ns greenlight.test-suite.blue
   (:require
     [clojure.test :refer [is]]
+    [com.stuartsierra.component :as component]
     [greenlight.step :as step :refer [defstep]]
     [greenlight.test :as test :refer [deftest]]))
 
@@ -33,7 +34,7 @@
           :inputs {:a (step/lookup [::foo ::bar ::baz])
                    :a' (step/lookup [::foo ::bar ::baz2])
                    :b 5
-                   :c (step/component ::component)
+                   :c (step/component :greenlight.test-test/component)
                    :double-a (step/lookup (fn [ctx]
                                             (* 2 (get-in ctx [::foo ::bar ::baz]))))}
           :test (fn [{:keys [a a' b c double-a]}]
