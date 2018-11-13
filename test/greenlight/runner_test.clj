@@ -6,7 +6,11 @@
     [greenlight.runner :as runner]))
 
 (deftest filter-test-suite
-  (let [tests [(red/sample-test) (red/sample-test)]]
-    (is (= 2 (count (runner/filter-test-suite tests []))))
-    (is (= 1 (count (runner/filter-test-suite tests [":only" "greenlight.test-suite.blue"]))))
-    (is (= 1 (count (runner/filter-test-suite tests [":only" "greenlight.test-suite.red"]))))))
+  (let [tests [(blue/sample-test) (red/sample-test)]
+        all-tests (runner/filter-test-suite tests [])
+        blue-test-only (runner/filter-test-suite tests [":only" "greenlight.test-suite.blue"])
+        red-test-only (runner/filter-test-suite tests [":only" "greenlight.test-suite.red"])]
+    (are [e a] (= e a)
+      ['greenlight.test-suite.blue 'greenlight.test-suite.red] (mapv :greenlight.test/ns all-tests)
+      ['greenlight.test-suite.blue] (mapv :greenlight.test/ns blue-test-only)
+      ['greenlight.test-suite.red] (mapv :greenlight.test/ns red-test-only))))
