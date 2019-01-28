@@ -13,7 +13,8 @@
     (is (= :pass (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
+            "greenlight.test-suite.blue/sample-step-without-optionals"
             "Another Step"
             "d: 8, e: 10, f: 12"]
            (mapv ::step/title (::test/steps test-result))))
-    (is (= 4 (count (::test/steps test-result))))))
+    (is (= 5 (count (::test/steps test-result))))))

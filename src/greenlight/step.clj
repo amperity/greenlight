@@ -95,12 +95,14 @@
   (create-foo
     {:foo/name \"Foo 1\"}
     :output :foo.1/id)"
-  [step-name docstring & default-config]
-  (when-not (string? docstring)
-    (throw (IllegalArgumentException.
-             "defstep expects a docstring for the step constructor")))
-  (let [default-config (qualify-config-keys
-                         (apply hash-map default-config))]
+  [step-name & step-decl]
+  (let [docstring (if (string? (first step-decl)) (first step-decl) "")
+        default-config (-> (if (string? (first step-decl))
+                             (rest step-decl)
+                             step-decl)
+                           (->> (apply hash-map))
+                           (update :title #(or % (str *ns* \/ step-name)))
+                           qualify-config-keys)]
     `(defn ~step-name
        ~docstring
        ([]

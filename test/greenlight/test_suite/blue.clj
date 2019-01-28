@@ -19,6 +19,17 @@
           (is (= 3 baz))
           4))
 
+(defstep sample-step-without-optionals
+  :inputs {:foo 1
+           :bar 2
+           :baz -1}
+  ::step/output [::foo ::bar ::baz]
+  :test (fn [{:keys [foo bar baz]}]
+          (is (= 1 foo))
+          (is (= 2 bar))
+          (is (= 3 baz))
+          4))
+
 
 (deftest sample-test
   "A sample greenlight test in the blue test suite"
@@ -27,6 +38,8 @@
   (sample-step
     {:baz 3}
     :output [::foo ::bar ::baz2])
+  (sample-step-without-optionals
+    {:baz 3})
   #::step{:name 'another-step
           :title "Another Step"
           :output (fn [ctx outputs]
