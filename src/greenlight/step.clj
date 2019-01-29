@@ -102,8 +102,8 @@
                          `(defn ~step-name))
         default-config (-> (if docstring (rest step-decl) step-decl)
                            (->> (apply hash-map))
-                           (update :title #(or % (str *ns* \/ step-name)))
-                           qualify-config-keys)]
+                           qualify-config-keys
+                           (update ::title #(or % (str *ns* \/ step-name))))]
     `(~@fn-declaration
        ([]
         (~step-name {}))
