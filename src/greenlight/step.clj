@@ -96,15 +96,15 @@
     {:foo/name \"Foo 1\"}
     :output :foo.1/id)"
   [step-name & step-decl]
-  (let [docstring (if (string? (first step-decl)) (first step-decl) "")
-        default-config (-> (if (string? (first step-decl))
-                             (rest step-decl)
-                             step-decl)
+  (let [docstring (when (string? (first step-decl)) (first step-decl))
+        fn-declaration (if docstring
+                         `(defn ~step-name ~docstring)
+                         `(defn ~step-name))
+        default-config (-> (if docstring (rest step-decl) step-decl)
                            (->> (apply hash-map))
                            (update :title #(or % (str *ns* \/ step-name)))
                            qualify-config-keys)]
-    `(defn ~step-name
-       ~docstring
+    `(~@fn-declaration
        ([]
         (~step-name {}))
        ([~'inputs & {:as ~'config}]
