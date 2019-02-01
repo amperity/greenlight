@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 0.1.3 - 2019-02-01
+
+### Added
+
+- Added a default for a step title defined with `defstep`
+- Added the ability to define a step with `defstep` omitting the docstring
 
 ## 0.1.2 - 2018-11-13
 
