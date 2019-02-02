@@ -272,6 +272,15 @@
     (fn? (::title step)) (update ::title #(% ctx))))
 
 
+(defmulti report->outcome :type)
+
+(defmethod report->outcome :pass [_] :greenlight.assert/pass)
+(defmethod report->outcome :fail [_] :greenlight.assert/fail)
+(defmethod report->outcome :error [_] :greenlight.assert/error)
+(defmethod report->outcome :matcher-combinators/mismatch [_] :greenlight.assert/fail)
+(defmethod report->outcome :default [_] :greenlight.assert/pass)
+
+
 (defn advance!
   "Advance the test by performing the next step. Returns a tuple of the
   enriched step map and updated context."
@@ -300,9 +309,9 @@
                  :timeout
                  (format "Step timed out after %d seconds" timeout))
                ctx])
-            (let [report-types (group-by :type @reports)
-                  passed? (and (empty? (:fail report-types))
-                               (empty? (:error report-types)))]
+            (let [report-types (group-by (comp report->outcome :type) @reports)
+                  passed? (and (empty? (:greenlight.assert/fail report-types))
+                               (empty? (:greenlight.assert/error report-types)))]
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
