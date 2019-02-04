@@ -309,7 +309,7 @@
                  :timeout
                  (format "Step timed out after %d seconds" timeout))
                ctx])
-            (let [report-types (group-by (comp report->outcome :type) @reports)
+            (let [report-types (group-by report->outcome @reports)
                   passed? (and (empty? (:greenlight.assert/fail report-types))
                                (empty? (:greenlight.assert/error report-types)))]
               [(output-step
