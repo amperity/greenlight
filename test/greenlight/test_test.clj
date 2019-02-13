@@ -28,3 +28,14 @@
             "step-2"]
            (mapv ::step/title (::test/steps test-result))))
     (is (= 2 (count (::test/steps test-result))))))
+
+(deftest optional-attr-map-test
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        attr-test (blue/optional-attr-map)
+        test-result (test/run-test! system attr-test)]
+    (is (= (::test/description test-result) "foobar"))
+    (is (= (::test/context test-result) {:foo :bar}))
+    (is (= :pass (::test/outcome test-result)))
+    (is (= ["step-1"]
+           (mapv ::step/title (::test/steps test-result))))
+    (is (= 1 (count (::test/steps test-result))))))

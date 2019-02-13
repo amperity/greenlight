@@ -40,6 +40,14 @@
           :test (fn [_]
                   (is (= 1 1)))})
 
+(deftest optional-attr-map
+  #::test{:description "foobar"
+          :context {:foo :bar}}
+  #::step{:name  'step-1
+          :title "step-1"
+          :test  (fn [_]
+                   (is (= 1 1)))})
+
 (deftest sample-test
   "A sample greenlight test in the blue test suite"
   (sample-step

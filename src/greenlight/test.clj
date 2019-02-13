@@ -47,18 +47,34 @@
              :kind? vector?
              :min-count 1))
 
+(defn- contains-ns? [coll ns]
+  (not (empty? (reduce-kv (fn [m k v]
+                            (if (= ns (namespace k))
+                              (assoc m k v)
+                              m)) {} coll))))
+
+(defn- attr-map? [o]
+  (and (map? o) (contains-ns? o "greenlight.test")))
 
 (defmacro deftest
-  "Defines a new integration test. The docstring is optional. An
-  integration test is a collection of individual steps or an
+  "Defines a new integration test. In the first position, the value can
+  either be an optional docstring or an optional test configuration
+  map. An integration test is a collection of individual steps or an
   arbitrarily nested sequential collection of steps."
   [test-name & body]
   (let [docstring (when (string? (first body))
                     (first body))
-        steps (if (string? (first body))
+        body (if (string? (first body))
                 (rest body)
                 body)
-        base (cond-> {} docstring (assoc ::description docstring))]
+        attr-map (when (attr-map? (first body))
+                   (first body))
+        steps (if (attr-map? (first body))
+                (rest body)
+                body)
+        base (cond-> {}
+               docstring (assoc ::description docstring)
+               attr-map (merge attr-map))]
     `(defn ~(vary-meta test-name assoc ::test true)
        []
        (assoc ~base
