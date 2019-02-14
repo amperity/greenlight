@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 0.1.4 - 2019-02-14
+
+### Added
+
+- Make docstring optional for `deftest` (closes #13)
+- Make assertion outcomes extensible
+
 ## 0.1.3 - 2019-02-01
 
 ### Added
