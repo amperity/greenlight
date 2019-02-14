@@ -3,7 +3,8 @@
   (:require
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
-    [clojure.test :as ctest]))
+    [clojure.test :as ctest]
+    [greenlight.assert :as assert]))
 
 
 ;; ## Step Configuration
@@ -300,9 +301,9 @@
                  :timeout
                  (format "Step timed out after %d seconds" timeout))
                ctx])
-            (let [report-types (group-by :type @reports)
-                  passed? (and (empty? (:fail report-types))
-                               (empty? (:error report-types)))]
+            (let [report-types (group-by assert/report->outcome @reports)
+                  passed? (and (empty? (::assert/fail report-types))
+                               (empty? (::assert/error report-types)))]
               [(output-step
                  (if passed? :pass :fail)
                  (->> report-types
