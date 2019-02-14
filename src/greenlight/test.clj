@@ -47,16 +47,36 @@
              :kind? vector?
              :min-count 1))
 
+(defn- contains-ns?
+  "Returns true if at least one key is in the namespace provided."
+  [m ns]
+  (some #(= ns (namespace (key %))) m))
+
+(defn- attr-map?
+  "Returns true if the map contains at least one key in the
+  greenlight.test namespace."
+  [o]
+  (and (map? o) (contains-ns? o "greenlight.test")))
 
 (defmacro deftest
-  "Define a new integration test. The test attributes may be a simple string
-  description or a map of configuration to merge into the test. Defines a
-  function which will construct the test config map. Steps can be individual steps
-  or an arbitrarily nested sequential collection of steps."
-  [test-sym attrs & steps]
-  (let [base (if (string? attrs)
-               {::description attrs}
-               attrs)]
+  "Defines a new integration test. In the first position, the value can
+  either be an optional docstring or an optional test configuration
+  map. An integration test is a collection of individual steps or an
+  arbitrarily nested sequential collection of steps."
+  [test-sym & body]
+  (let [docstring (when (string? (first body))
+                    (first body))
+        body (if (string? (first body))
+                (rest body)
+                body)
+        attr-map (when (attr-map? (first body))
+                   (first body))
+        steps (if (attr-map? (first body))
+                (rest body)
+                body)
+        base (cond-> {}
+               docstring (assoc ::description docstring)
+               attr-map (merge attr-map))]
     `(defn ~(vary-meta test-sym assoc ::test true)
        []
        (assoc ~base

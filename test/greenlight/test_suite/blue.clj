@@ -30,6 +30,23 @@
           (is (= 3 baz))
           4))
 
+(deftest optional-docstring-test
+  #::step{:name  'step-1
+          :title "step-1"
+          :test  (fn [_]
+                   (is (= 1 1)))}
+  #::step{:name 'step-2
+          :title "step-2"
+          :test (fn [_]
+                  (is (= 1 1)))})
+
+(deftest optional-attr-map
+  #::test{:description "foobar"
+          :context {:foo :bar}}
+  #::step{:name  'step-1
+          :title "step-1"
+          :test  (fn [_]
+                   (is (= 1 1)))})
 
 (deftest sample-test
   "A sample greenlight test in the blue test suite"
@@ -69,3 +86,8 @@
                    (is (= 10 y))
                    (is (= 12 z)))}])
 
+(comment
+  (require '[greenlight.runner :as runner])
+  (runner/run-tests! (constantly {})
+                     [(optional-docstring-test)]
+                     {}))
