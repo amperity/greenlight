@@ -47,13 +47,15 @@
              :kind? vector?
              :min-count 1))
 
-(defn- contains-ns? [coll ns]
-  (not (empty? (reduce-kv (fn [m k v]
-                            (if (= ns (namespace k))
-                              (assoc m k v)
-                              m)) {} coll))))
+(defn- contains-ns?
+  "Returns true if at least one key is in the namespace provided."
+  [m ns]
+  (some #(= ns (namespace (key %))) m))
 
-(defn- attr-map? [o]
+(defn- attr-map?
+  "Returns true if the map contains at least one key in the
+  greenlight.test namespace."
+  [o]
   (and (map? o) (contains-ns? o "greenlight.test")))
 
 (defmacro deftest
@@ -61,7 +63,7 @@
   either be an optional docstring or an optional test configuration
   map. An integration test is a collection of individual steps or an
   arbitrarily nested sequential collection of steps."
-  [test-name & body]
+  [test-sym & body]
   (let [docstring (when (string? (first body))
                     (first body))
         body (if (string? (first body))
@@ -75,10 +77,10 @@
         base (cond-> {}
                docstring (assoc ::description docstring)
                attr-map (merge attr-map))]
-    `(defn ~(vary-meta test-name assoc ::test true)
+    `(defn ~(vary-meta test-sym assoc ::test true)
        []
        (assoc ~base
-              ::title ~(str test-name)
+              ::title ~(str test-sym)
               ::ns '~(symbol (str *ns*))
               ::line ~(:line (meta &form))
               ::steps (vec (flatten (list ~@steps)))))))
