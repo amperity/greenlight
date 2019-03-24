@@ -8,7 +8,11 @@
     [com.stuartsierra.component :as component]
     [greenlight.report :as report]
     [greenlight.step :as step]
-    [greenlight.test :as test]))
+    [greenlight.test :as test])
+  (:import
+    (java.util.concurrent
+      Executors
+      ExecutorService)))
 
 
 (def cli-options
@@ -16,9 +20,10 @@
    [nil  "--no-color" "Disable the use of color in console output."]
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
-   [nil "--multithread" "Run tests with multiple threads."]
+   [nil  "--multithread THREADS" "Run tests with multiple threads."
+    :default (* 2 (.availableProcessors (Runtime/getRuntime)))
+    :parse-fn #(Integer/parseInt %)]
    ["-h" "--help"]])
-
 
 
 ;; ## Runner Commands
@@ -95,24 +100,40 @@
   []
   (let [o (Object.)]
     (fn [s]
-      (locking o (print s)))))
+      (locking o
+        (print s)
+        (flush)))))
 
 
 (defn- execute-tests
   [system tests opts]
   (let [printer (sync-printer)
-        sync-exec (partial test/run-test! system)
-        async-exec (fn [test]
-                     (with-delayed-output printer
-                       (test/run-test! system test)))]
-    (case (:multithread opts)
-      (nil false)
-      (map sync-exec tests)
-
-      true
-      (concat
-        (pmap async-exec (remove ::test/synchronized tests))
-        (map sync-exec (filter ::test/synchronized tests))))))
+        bindings (get-thread-bindings)
+        to-callable (fn [test]
+                      (reify Callable
+                        (call [_]
+                          (with-bindings bindings
+                            (with-delayed-output printer
+                              (test/run-test! system test))))))]
+    (if-let [n-threads (:multithread opts)]
+      ;; Run tests that aren't synchronized in parallel, then
+      ;; run all synchronized tests in serial
+      (let [exec-pool (Executors/newFixedThreadPool n-threads)]
+        (try
+          (concat
+            (->> tests
+                 (remove ::test/synchronized)
+                 (map to-callable)
+                 (map #(.submit exec-pool %))
+                 (doall)
+                 (map #(.get %))
+                 (doall))
+            (map (partial test/run-test! system)
+                 (filter ::test/synchronized tests)))
+          (finally
+            (.shutdownNow exec-pool))))
+      ;; Run all tests in serial
+      (map (partial test/run-test! system) tests))))
 
 
 (defn run-tests!
