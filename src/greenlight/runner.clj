@@ -16,6 +16,7 @@
    [nil  "--no-color" "Disable the use of color in console output."]
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
+   [nil "--multithread" "Run tests with multiple threads."]
    ["-h" "--help"]])
 
 
@@ -77,6 +78,43 @@
     true))
 
 
+(defmacro with-delayed-output
+  [printer & body]
+  `(let [out# (java.io.StringWriter.)
+         original-out# *out*
+         original-err# *err*]
+     (binding [*out* out#, *err* out#]
+       (let [result# ~@body]
+         (binding [*out* original-out#
+                   *err* original-err#]
+           (~printer (str out#))
+           result#)))))
+
+
+(defn- sync-printer
+  []
+  (let [o (Object.)]
+    (fn [s]
+      (locking o (print s)))))
+
+
+(defn- execute-tests
+  [system tests opts]
+  (let [printer (sync-printer)
+        sync-exec (partial test/run-test! system)
+        async-exec (fn [test]
+                     (with-delayed-output printer
+                       (test/run-test! system test)))]
+    (case (:multithread opts)
+      (nil false)
+      (map sync-exec tests)
+
+      true
+      (concat
+        (pmap async-exec (remove ::test/synchronized tests))
+        (map sync-exec (filter ::test/synchronized tests))))))
+
+
 (defn run-tests!
   "Run a collection of tests."
   ([new-system test-suite options] (run-tests! new-system test-suite options []))
@@ -90,10 +128,10 @@
      (let [system (component/start (new-system))]
        (try
          (binding [test/*report* (partial report/handle-test-event
-                                         {:print-color (not (:no-color options))})]
+                                          {:print-color (not (:no-color options))})]
            (println "Running" (count tests) "tests...")
-           (let [results (mapv (partial test/run-test! system) tests)]
-             ; TODO: check result spec?
+           (let [results (execute-tests system tests options)]
+             ;; TODO: check result spec?
              (newline)
              (report-results results options)
              (when-let [result-path (:output options)]
