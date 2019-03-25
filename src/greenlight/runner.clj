@@ -107,33 +107,33 @@
 
 (defn- execute-tests
   [system tests opts]
-  (let [printer (sync-printer)
-        bindings (get-thread-bindings)
-        to-callable (fn [test]
-                      (reify Callable
-                        (call [_]
-                          (with-bindings bindings
-                            (with-delayed-output printer
-                              (test/run-test! system test))))))]
-    (if-let [n-threads (:multithread opts)]
-      ;; Run tests that aren't synchronized in parallel, then
-      ;; run all synchronized tests in serial
-      (let [exec-pool (Executors/newFixedThreadPool n-threads)]
-        (try
-          (concat
-            (->> tests
-                 (remove ::test/synchronized)
-                 (map to-callable)
-                 (map #(.submit exec-pool %))
-                 (doall)
-                 (map #(.get %))
-                 (doall))
-            (map (partial test/run-test! system)
-                 (filter ::test/synchronized tests)))
-          (finally
-            (.shutdownNow exec-pool))))
-      ;; Run all tests in serial
-      (map (partial test/run-test! system) tests))))
+  (if-let [n-threads (:multithread opts)]
+    ;; Run tests that aren't synchronized in parallel, then
+    ;; run all synchronized tests in serial
+    (let [exec-pool (Executors/newFixedThreadPool n-threads)
+          printer (sync-printer)
+          bindings (get-thread-bindings)
+          to-callable (fn [test]
+                        (reify Callable
+                          (call [_]
+                            (with-bindings bindings
+                              (with-delayed-output printer
+                                (test/run-test! system test))))))]
+      (try
+        (concat
+          (->> tests
+               (remove ::test/synchronized)
+               (map to-callable)
+               (map #(.submit exec-pool %))
+               (doall)
+               (map #(.get %))
+               (doall))
+          (map (partial test/run-test! system)
+               (filter ::test/synchronized tests)))
+        (finally
+          (.shutdownNow exec-pool))))
+    ;; Run all tests in serial
+    (map (partial test/run-test! system) tests)))
 
 
 (defn run-tests!
