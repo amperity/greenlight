@@ -23,6 +23,10 @@
 ;; Human-friendly description of the scenario the test covers.
 (s/def ::description string?)
 
+;; Test execution group tag. Tests within the same group
+;; are executed in serial.
+(s/def ::group keyword?)
+
 ;; Sequence of steps to take for this test.
 (s/def ::steps
   (s/coll-of ::step/config
