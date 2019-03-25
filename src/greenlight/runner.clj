@@ -81,7 +81,7 @@
     true))
 
 
-(defmacro with-delayed-output
+(defmacro ^:private with-delayed-output
   [printer & body]
   `(let [out# (java.io.StringWriter.)
          original-out# *out*
@@ -95,6 +95,7 @@
 
 
 (defn- sync-printer
+  "Creates a synchronized printer function"
   []
   (let [o (Object.)]
     (fn [s]
@@ -104,6 +105,7 @@
 
 
 (defn- execute-parallel
+  "Run a collection of tests, using an executor pool with `n-threads`"
   [system tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
         printer (sync-printer)
