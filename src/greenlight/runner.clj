@@ -20,8 +20,7 @@
    [nil  "--no-color" "Disable the use of color in console output."]
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
-   [nil  "--multithread THREADS" "Run tests with multiple threads."
-    :default (* 2 (.availableProcessors (Runtime/getRuntime)))
+   [nil  "--multithread N" "Run tests with multiple threads."
     :parse-fn #(Integer/parseInt %)]
    ["-h" "--help"]])
 
