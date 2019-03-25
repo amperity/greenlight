@@ -11,8 +11,7 @@
     [greenlight.test :as test])
   (:import
     (java.util.concurrent
-      Executors
-      ExecutorService)))
+      Executors)))
 
 
 (def cli-options
