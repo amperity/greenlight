@@ -105,35 +105,34 @@
         (flush)))))
 
 
-(defn- execute-tests
-  [system tests opts]
-  (if-let [n-threads (:multithread opts)]
-    ;; Run tests that aren't synchronized in parallel, then
-    ;; run all synchronized tests in serial
-    (let [exec-pool (Executors/newFixedThreadPool n-threads)
-          printer (sync-printer)
-          bindings (get-thread-bindings)
-          to-callable (fn [test]
-                        (reify Callable
-                          (call [_]
-                            (with-bindings bindings
+(defn- execute-parallel
+  [system tests n-threads]
+  (let [exec-pool (Executors/newFixedThreadPool n-threads)
+        printer (sync-printer)
+        bindings (get-thread-bindings)
+        run-group (fn run-group
+                    [tests]
+                    (reify Callable
+                      (call [_]
+                        (with-bindings bindings
+                          (mapv
+                            (fn [test]
                               (with-delayed-output printer
-                                (test/run-test! system test))))))]
-      (try
-        (concat
-          (->> tests
-               (remove ::test/synchronized)
-               (map to-callable)
-               (map #(.submit exec-pool %))
-               (doall)
-               (map #(.get %))
-               (doall))
-          (map (partial test/run-test! system)
-               (filter ::test/synchronized tests)))
-        (finally
-          (.shutdownNow exec-pool))))
-    ;; Run all tests in serial
-    (map (partial test/run-test! system) tests)))
+                                (test/run-test! system test)))
+                            tests)))))]
+    (try
+      (->> tests
+           (group-by #(or (::test/group %) (gensym)))
+           (map
+             (fn submit-group
+               [[_ group-tests]]
+               (.submit exec-pool (run-group group-tests))))
+           (doall)
+           (map #(.get %))
+           (doall)
+           (mapcat identity))
+      (finally
+        (.shutdownNow exec-pool)))))
 
 
 (defn run-tests!
@@ -151,7 +150,9 @@
          (binding [test/*report* (partial report/handle-test-event
                                           {:print-color (not (:no-color options))})]
            (println "Running" (count tests) "tests...")
-           (let [results (execute-tests system tests options)]
+           (let [results (if-let [n-threads (:multithread options)]
+                           (execute-parallel system tests n-threads)
+                           (mapv (partial test/run-test! system) tests))]
              ;; TODO: check result spec?
              (newline)
              (report-results results options)
