@@ -330,7 +330,7 @@ to match test name.
 
 ### Parallel Test Execution
 
-Tests can be executed in parallel by providing a `--multithread` option
+Tests can be executed in parallel by providing a `--parallel` option
 with a number of threads. Tests can be further grouped with `::test/group`
 metadata to indicate that tests within the same group should run serially.
 
@@ -357,7 +357,7 @@ Groups of tests are run in parallel.
   [(simple1)
    (simple2)
    (simple3)]
-  {:multithread 2})
+  {:parallel 2})
 ```
 
 ## License

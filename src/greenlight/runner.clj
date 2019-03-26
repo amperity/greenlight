@@ -19,7 +19,7 @@
    [nil  "--no-color" "Disable the use of color in console output."]
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
-   [nil  "--multithread N" "Run tests with multiple threads."
+   [nil  "--parallel N" "Run tests with the provided parallelization factor."
     :parse-fn #(Integer/parseInt %)]
    ["-h" "--help"]])
 
@@ -150,7 +150,7 @@
          (binding [test/*report* (partial report/handle-test-event
                                           {:print-color (not (:no-color options))})]
            (println "Running" (count tests) "tests...")
-           (let [results (if-let [n-threads (:multithread options)]
+           (let [results (if-let [n-threads (:parallel options)]
                            (execute-parallel system tests n-threads)
                            (mapv (partial test/run-test! system) tests))]
              ;; TODO: check result spec?
