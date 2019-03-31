@@ -2,6 +2,7 @@
   "Entry point for running a suite of tests and generating reports from the
   results."
   (:require
+    [clojure.set :as set]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
@@ -42,22 +43,41 @@
     (report/write-html-results html-path results nil)))
 
 
+(defn- filter-tests
+  [matcher test-vars]
+  (cond->> test-vars
+    (keyword? matcher)
+    (filter (comp matcher meta))
+
+    (instance? java.util.regex.Pattern matcher)
+    (filter #(re-matches matcher (name (:name (meta %)))))
+
+    true
+    (map (fn [v] (v)))
+
+    (map? matcher)
+    (filter #(set/subset?
+               (set (select-keys matcher
+                                 [::test/ns
+                                  ::test/title
+                                  ::test/group]))
+               (set %)))))
+
+
 (defn find-tests
   "Finds tests, optionally limited to namespaces matching a provided matcher.
-  The matcher can be either a keyword as a test selector on metadata or a
-  regular expression to match on test name."
+  The matcher provided can be one of:
+  - a keyword: find tests that are tagged with this metadata
+  - regular expression: match on test name
+  - a map: find tests matching a test property, either by title, namespace, or group."
   ([] (find-tests nil))
   ([matcher]
-   (let [keep-test? (cond
-                      (nil? matcher) (constantly true)
-                      (keyword? matcher) (comp matcher meta)
-                      :else #(re-matches matcher (name (:name (meta %)))))
-         test-vars (fn [ns]
-                     (->> ns ns-interns vals (filter (comp ::test/test meta))))]
-     (->> (all-ns)
-          (mapcat test-vars)
-          (filter keep-test?)
-          (map (fn [v] (v)))))))
+   (->> (all-ns)
+        (mapcat
+          (fn test-vars
+            [ns]
+            (->> ns ns-interns vals (filter (comp ::test/test meta)))))
+        (filter-tests matcher))))
 
 
 (defn filter-test-suite
