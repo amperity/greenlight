@@ -105,12 +105,13 @@
   [printer & body]
   `(let [out# (java.io.StringWriter.)
          original-out# *out*
-         original-err# *err*]
+         original-err# *err*
+         printer# ~printer]
      (binding [*out* out#, *err* out#]
-       (let [result# ~@body]
+       (let [result# (do ~@body)]
          (binding [*out* original-out#
                    *err* original-err#]
-           (~printer (str out#))
+           (printer# (str out#))
            result#)))))
 
 
