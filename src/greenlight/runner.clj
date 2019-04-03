@@ -12,7 +12,8 @@
     [greenlight.test :as test])
   (:import
     (java.util.concurrent
-      Executors)))
+      Executors
+      Future)))
 
 
 (def cli-options
@@ -138,18 +139,25 @@
                         (with-bindings bindings
                           (mapv
                             (fn [test]
+                              (printer (str "* " (::test/title test) " running.\n"))
                               (with-delayed-output printer
                                 (test/run-test! system test)))
-                            tests)))))]
+                            tests)))))
+        test-groups (group-by #(or (::test/group %) (gensym)) tests)]
     (try
-      (->> tests
-           (group-by #(or (::test/group %) (gensym)))
+      (doseq [test tests]
+        (printer (str "* " (::test/title test) " queued.\n")))
+      (printer \newline)
+      (printer (format "Starting %d test groups with a parallelization factor of %d.\n"
+                       (count test-groups)
+                       n-threads))
+      (->> test-groups
            (map
              (fn submit-group
                [[_ group-tests]]
-               (.submit exec-pool (run-group group-tests))))
+               (.submit exec-pool ^Callable (run-group group-tests))))
            (doall)
-           (map #(.get %))
+           (map #(.get ^Future %))
            (doall)
            (mapcat identity))
       (finally
