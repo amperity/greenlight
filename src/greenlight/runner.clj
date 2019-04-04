@@ -60,7 +60,13 @@
   [test-suite arguments]
   (if (= ":only" (first arguments))
     (filter
-      (comp (partial re-matches (re-pattern (second arguments))) name ::test/ns)
+      (fn [test]
+        (let [tns (name (::test/ns test))
+              tnm (::test/title test)
+              pattern (str/split (second arguments) #"/")]
+          (if (second pattern)
+            (and (= tns (first pattern)) (= tnm (second pattern)))
+            (= tns (first pattern)))))
       test-suite)
     test-suite))
 
