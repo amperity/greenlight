@@ -171,14 +171,29 @@
   nil)
 
 
-(defn register-cleanup!
-  "Registers a cleanup job with the `*pending-cleanups*` atom, if bound."
-  [resource-type parameters]
+(defn new-cleanups
+  "Create a new value to bind to *pending-cleanups*"
+  []
+  (atom []))
+
+
+(defn- throw-if-cleanups-unbound!
+  []
   (when-not (thread-bound? #'*pending-cleanups*)
     (throw (IllegalStateException.
-             "register-cleanup! called without *pending-cleanups* bound!")))
-  (swap! *pending-cleanups* conj [resource-type parameters])
-  nil)
+             "register-cleanup! called without *pending-cleanups* bound!"))))
+
+
+(defn register-cleanup!
+  "Registers a cleanup job with the `*pending-cleanups*` atom, if bound."
+  ([resource-type parameters]
+   (register-cleanup! resource-type parameters {}))
+  ([resource-type parameters {:keys [unique?]}]
+   (throw-if-cleanups-unbound!)
+   (when-not (and unique?
+                  (some #(= % [resource-type parameters]) @*pending-cleanups*))
+     (swap! *pending-cleanups* conj [resource-type parameters]))
+   nil))
 
 
 (defmulti clean!
@@ -287,7 +302,7 @@
                             ::elapsed @elapsed
                             ::reports @reports)]
     (binding [ctest/report (partial swap! reports conj)
-              *pending-cleanups* (atom [])]
+              *pending-cleanups* (new-cleanups)]
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
