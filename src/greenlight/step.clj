@@ -185,7 +185,12 @@
 
 
 (defn register-cleanup!
-  "Registers a cleanup job with the `*pending-cleanups*` atom, if bound."
+  "Registers a cleanup job with the `*pending-cleanups*` atom, if bound.
+
+  Allows an optional param map with the following:
+  - :unique?
+    Specifies whether the registered cleanup should be deduplicated against
+    already registered cleanups"
   ([resource-type parameters]
    (register-cleanup! resource-type parameters {}))
   ([resource-type parameters {:keys [unique?]}]
