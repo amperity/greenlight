@@ -65,8 +65,9 @@
               tnm (::test/title test)
               pattern (str/split (second arguments) #"/")]
           (if (second pattern)
-            (and (= tns (first pattern)) (= tnm (second pattern)))
-            (= tns (first pattern)))))
+            (and (re-matches (re-pattern (first pattern)) tns)
+                 (re-matches (re-pattern (second pattern)) tnm))
+            (re-matches (re-pattern (first pattern)) tns))))
       test-suite)
     test-suite))
 
