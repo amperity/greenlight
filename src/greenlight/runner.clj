@@ -22,7 +22,8 @@
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
    [nil  "--parallel N" "Run tests with the provided parallelization factor."
-    :parse-fn #(Integer/parseInt %)]
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 1 %) "Must be greater than 1."]]
    ["-h" "--help"]])
 
 
@@ -134,15 +135,13 @@
         bindings (get-thread-bindings)
         run-group (fn run-group
                     [tests]
-                    (reify Callable
-                      (call [_]
-                        (with-bindings bindings
-                          (mapv
-                            (fn [test]
-                              (printer (str "* " (::test/title test) " running.\n"))
-                              (with-delayed-output printer
-                                (test/run-test! system test)))
-                            tests)))))
+                    (bound-fn []
+                      (mapv
+                        (fn [test]
+                          (printer (str "* " (::test/title test) " running.\n"))
+                          (with-delayed-output printer
+                            (test/run-test! system test)))
+                        tests)))
         test-groups (group-by #(or (::test/group %) (gensym)) tests)]
     (try
       (doseq [test tests]
@@ -157,9 +156,8 @@
                [[_ group-tests]]
                (.submit exec-pool ^Callable (run-group group-tests))))
            (doall)
-           (map #(.get ^Future %))
-           (doall)
-           (mapcat identity))
+           (map deref)
+           (into [] cat))
       (finally
         (.shutdownNow exec-pool)))))
 
@@ -179,9 +177,10 @@
          (binding [test/*report* (partial report/handle-test-event
                                           {:print-color (not (:no-color options))})]
            (println "Running" (count tests) "tests...")
-           (let [results (if-let [n-threads (:parallel options)]
-                           (execute-parallel system tests n-threads)
-                           (mapv (partial test/run-test! system) tests))]
+           (let [results (let [parallelization (:parallel options 1)]
+                           (if (< 1 parallelization)
+                             (execute-parallel system tests parallelization)
+                             (mapv (partial test/run-test! system) tests)))]
              ;; TODO: check result spec?
              (newline)
              (report-results results options)
