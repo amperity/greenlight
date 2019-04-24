@@ -139,7 +139,6 @@
   [system tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
         printer (sync-printer)
-        bindings (get-thread-bindings)
         run-group (fn run-group
                     [tests]
                     (bound-fn []
