@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 0.1.5 - 2019-04-25
+
+### Added
+
+- Expands test `:only` options to specify a single namespace for excution
+- Adds support for a test `--parallel` option to run tests in parallel
+
 ## 0.1.4 - 2019-02-14
 
 ### Added
