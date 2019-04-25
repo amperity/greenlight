@@ -113,15 +113,12 @@
 (defmacro ^:private with-delayed-output
   [printer & body]
   `(let [out# (java.io.StringWriter.)
-         original-out# *out*
-         original-err# *err*
-         printer# ~printer]
-     (binding [*out* out#, *err* out#]
-       (let [result# (do ~@body)]
-         (binding [*out* original-out#
-                   *err* original-err#]
-           (printer# (str out#))
-           result#)))))
+         printer# ~printer
+         result# (binding [*out* out#
+                           *err* out#]
+                   ~@body)]
+     (printer# (str out#))
+     result#))
 
 
 (defn- sync-printer
