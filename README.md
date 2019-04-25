@@ -9,7 +9,7 @@ a suite of tests against your systems gives you the confidence to _greenlight_
 them for promotion to production. The primary goals of this framework are:
 
 - Steps should be _composable_ to drive down repetition in similar tests.
-- TODO: Tests should be _distributable_ and support parallelization out-of-the-box.
+- Tests should support parallelization out-of-the-box.
 - Results should be _actionable_ and easy to understand.
 
 
@@ -326,6 +326,38 @@ to match test name.
 
 (runner/find-tests #"test-2")
 => (#:greenlight.test{:description ",,,", :title "test-2", :ns user, :line 5, :steps []})
+```
+
+### Parallel Test Execution
+
+Tests can be executed in parallel by providing a `--parallel` option
+with a number of threads. Tests can be further grouped with `::test/group`
+metadata to indicate that tests within the same group should run serially.
+
+If a `::test/group` is not provided, a test is placed in its own group.
+Groups of tests are run in parallel.
+
+
+```clojure
+(deftest simple1
+  (math-test))
+
+(deftest simple2
+  {::test/group :sync}
+  (math-test))
+
+(deftest simple3
+  {::test/group :sync}
+  (math-test))
+
+;; Will run `simple1` and `simple2` concurrently, then
+;; `simple3` on completion of `simple2`.
+(runner/run-tests!
+  (constantly {})
+  [(simple1)
+   (simple2)
+   (simple3)]
+  {:parallel 2})
 ```
 
 ## License

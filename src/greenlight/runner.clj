@@ -2,13 +2,18 @@
   "Entry point for running a suite of tests and generating reports from the
   results."
   (:require
+    [clojure.set :as set]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
     [com.stuartsierra.component :as component]
     [greenlight.report :as report]
     [greenlight.step :as step]
-    [greenlight.test :as test]))
+    [greenlight.test :as test])
+  (:import
+    (java.util.concurrent
+      Executors
+      Future)))
 
 
 (def cli-options
@@ -16,8 +21,10 @@
    [nil  "--no-color" "Disable the use of color in console output."]
    [nil  "--html-report FILE" "Report test results as HTML to the given path."]
    [nil  "--junit-report FILE" "Report test results as Junit XML to the given path."]
+   [nil  "--parallel N" "Run tests with the provided parallelization factor."
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 1 %) "Must be greater than 1."]]
    ["-h" "--help"]])
-
 
 
 ;; ## Runner Commands
@@ -38,22 +45,41 @@
     (report/write-html-results html-path results nil)))
 
 
+(defn- filter-tests
+  [matcher test-vars]
+  (cond->> test-vars
+    (keyword? matcher)
+    (filter (comp matcher meta))
+
+    (instance? java.util.regex.Pattern matcher)
+    (filter #(re-matches matcher (name (:name (meta %)))))
+
+    true
+    (map (fn [v] (v)))
+
+    (map? matcher)
+    (filter #(set/subset?
+               (set (select-keys matcher
+                                 [::test/ns
+                                  ::test/title
+                                  ::test/group]))
+               (set %)))))
+
+
 (defn find-tests
   "Finds tests, optionally limited to namespaces matching a provided matcher.
-  The matcher can be either a keyword as a test selector on metadata or a
-  regular expression to match on test name."
+  The matcher provided can be one of:
+  - a keyword: find tests that are tagged with this metadata
+  - regular expression: match on test name
+  - a map: find tests matching a test property, either by title, namespace, or group."
   ([] (find-tests nil))
   ([matcher]
-   (let [keep-test? (cond
-                      (nil? matcher) (constantly true)
-                      (keyword? matcher) (comp matcher meta)
-                      :else #(re-matches matcher (name (:name (meta %)))))
-         test-vars (fn [ns]
-                     (->> ns ns-interns vals (filter (comp ::test/test meta))))]
-     (->> (all-ns)
-          (mapcat test-vars)
-          (filter keep-test?)
-          (map (fn [v] (v)))))))
+   (->> (all-ns)
+        (mapcat
+          (fn test-vars
+            [ns]
+            (->> ns ns-interns vals (filter (comp ::test/test meta)))))
+        (filter-tests matcher))))
 
 
 (defn filter-test-suite
@@ -84,6 +110,61 @@
     true))
 
 
+(defmacro ^:private with-delayed-output
+  [printer & body]
+  `(let [out# (java.io.StringWriter.)
+         printer# ~printer
+         result# (binding [*out* out#
+                           *err* out#]
+                   ~@body)]
+     (printer# (str out#))
+     result#))
+
+
+(defn- sync-printer
+  "Creates a synchronized printer function"
+  []
+  (let [o (Object.)]
+    (fn [s]
+      (locking o
+        (print s)
+        (flush)))))
+
+
+(defn- execute-parallel
+  "Run a collection of tests, using an executor pool with `n-threads`"
+  [system tests n-threads]
+  (let [exec-pool (Executors/newFixedThreadPool n-threads)
+        printer (sync-printer)
+        run-group (fn run-group
+                    [tests]
+                    (bound-fn []
+                      (mapv
+                        (fn [test]
+                          (printer (str "* " (::test/title test) " running.\n"))
+                          (with-delayed-output printer
+                            (test/run-test! system test)))
+                        tests)))
+        test-groups (group-by #(or (::test/group %) (gensym)) tests)]
+    (try
+      (doseq [test tests]
+        (printer (str "* " (::test/title test) " queued.\n")))
+      (printer \newline)
+      (printer (format "Starting %d test groups with a parallelization factor of %d.\n"
+                       (count test-groups)
+                       n-threads))
+      (->> test-groups
+           (map
+             (fn submit-group
+               [[_ group-tests]]
+               (.submit exec-pool ^Callable (run-group group-tests))))
+           (doall)
+           (map deref)
+           (into [] cat))
+      (finally
+        (.shutdownNow exec-pool)))))
+
+
 (defn run-tests!
   "Run a collection of tests."
   ([new-system test-suite options] (run-tests! new-system test-suite options []))
@@ -97,10 +178,13 @@
      (let [system (component/start (new-system))]
        (try
          (binding [test/*report* (partial report/handle-test-event
-                                         {:print-color (not (:no-color options))})]
+                                          {:print-color (not (:no-color options))})]
            (println "Running" (count tests) "tests...")
-           (let [results (mapv (partial test/run-test! system) tests)]
-             ; TODO: check result spec?
+           (let [results (let [parallelization (:parallel options 1)]
+                           (if (< 1 parallelization)
+                             (execute-parallel system tests parallelization)
+                             (mapv (partial test/run-test! system) tests)))]
+             ;; TODO: check result spec?
              (newline)
              (report-results results options)
              (when-let [result-path (:output options)]
