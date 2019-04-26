@@ -5,6 +5,7 @@
     [clojure.set :as set]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
+    [clojure.test :as ctest]
     [clojure.tools.cli :as cli]
     [com.stuartsierra.component :as component]
     [greenlight.report :as report]
@@ -115,7 +116,8 @@
   `(let [out# (java.io.StringWriter.)
          printer# ~printer
          result# (binding [*out* out#
-                           *err* out#]
+                           *err* out#
+                           ctest/*test-out* out#]
                    ~@body)]
      (printer# (str out#))
      result#))
