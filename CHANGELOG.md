@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 0.1.6 - 2019-04-26
+
+### Fixed
+
+- Clojure test failure output is collocated with Greenlight failure reporting
+
 ## 0.1.5 - 2019-04-25
 
 ### Added
