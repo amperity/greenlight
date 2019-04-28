@@ -268,15 +268,20 @@
 
 (defn initialize
   "Resolves contextual properties of a step prior to execution."
-  [step ctx]
-  (cond-> step
-    (fn? (::title step)) (update ::title #(% ctx))))
+  [system step ctx]
+  (let [inputs (collect-inputs system ctx step)]
+    [(cond-> step
+       (fn? (::title step)) (update ::title #(try
+                                               (% ctx)
+                                               (catch clojure.lang.ArityException ex
+                                                 (% ctx inputs)))))
+     inputs]))
 
 
 (defn advance!
   "Advance the test by performing the next step. Returns a tuple of the
   enriched step map and updated context."
-  [system step ctx]
+  [system step ctx inputs]
   (let [start (System/nanoTime)
         elapsed (delay (/ (- (System/nanoTime) start) 1e9))
         reports (atom [])
@@ -291,7 +296,6 @@
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
-              inputs (collect-inputs system ctx step)
               step-future (future (test-fn inputs))
               output (deref step-future (* 1000 timeout) ::timeout)]
           (if (= output ::timeout)

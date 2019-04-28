@@ -58,7 +58,8 @@
   (sample-step-without-optionals
     {:baz 3})
   #::step{:name 'another-step
-          :title "Another Step"
+          :title (fn [ctx {:keys [a b c]}]
+                   (format "a: %s b: %s c: %s" a b c))
           :output (fn [ctx outputs]
                     (merge outputs ctx))
           :inputs {:a (step/lookup [::foo ::bar ::baz])

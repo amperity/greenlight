@@ -14,21 +14,20 @@
     (is (= ["Sample Step"
             "Sample Step"
             "greenlight.test-suite.blue/sample-step-without-optionals"
-            "Another Step"
+            "a: 4 b: 5 c: 6"
             "d: 8, e: 10, f: 12"]
            (mapv ::step/title (::test/steps test-result))))
     (is (= 5 (count (::test/steps test-result)))))
 
   (let [system      (component/system-map :greenlight.test-test/component 5)
         sample-test (blue/sample-test)
-        test-result (test/run-test! system sample-test)]
+        test-result (test/run-test! system sample-test)
+        step-titles (mapv ::step/title (::test/steps test-result))]
     (is (= :fail (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
-            "greenlight.test-suite.blue/sample-step-without-optionals"
-            "Another Step"]
-           (butlast
-            (mapv ::step/title (::test/steps test-result)))))
+            "greenlight.test-suite.blue/sample-step-without-optionals"]
+           (take (- (count step-titles) 2) step-titles)))
     (is (= 5 (count (::test/steps test-result))))))
 
 (deftest optional-docstring-test
