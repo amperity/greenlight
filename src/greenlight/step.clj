@@ -268,9 +268,11 @@
 
 (defn initialize
   "Resolves contextual properties of a step prior to execution."
-  [step ctx]
-  (cond-> step
-    (fn? (::title step)) (update ::title #(% ctx))))
+  [system step ctx]
+  (let [inputs (collect-inputs system ctx step)]
+    (cond-> (assoc step ::inputs inputs)
+      (fn? (::title step))
+      (update ::title #(% (merge ctx inputs))))))
 
 
 (defn advance!
@@ -291,8 +293,7 @@
       (try
         (let [test-fn (::test step)
               timeout (::timeout step 60)
-              inputs (collect-inputs system ctx step)
-              step-future (future (test-fn inputs))
+              step-future (future (test-fn (::inputs step)))
               output (deref step-future (* 1000 timeout) ::timeout)]
           (if (= output ::timeout)
             (do
