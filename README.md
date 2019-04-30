@@ -157,6 +157,27 @@ are started on test startup and then stopped on test completion.
 => true
 ```
 
+If you wish to hook into another system library such as [integrant](https://github.com/weavejester/integrant),
+use the `ManagedSystem` protocol provider in the runner namespace, which supports extension via metadata:
+
+```clojure
+(extend-protocol runner/ManagedSystem
+  java.util.Map
+  (start-system [this] (integrant/init this))
+  (stop-system [this] (integrant/halt! this)))
+  
+(runner/run-tests! (constantly {:some-system-map :with-components})
+                   tests {})
+
+;;;Alternatively:
+
+(runner/run-tests! (constantly
+                     (with-meta {:some-system-map :with-components}
+                       {`runner/start-system (fn [this] (println "Starting test system...") this)
+                        `runner/stop-system (fn [this] (println "Stopping test system...") nil)})) 
+                   tests {})
+```
+
 
 ### Step Inputs and Outputs
 
