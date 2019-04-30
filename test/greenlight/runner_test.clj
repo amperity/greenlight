@@ -67,3 +67,19 @@
 
       {::test/group :group/c ::test/ns 'foo.bar}
       [])))
+
+(deftest system-handling-tests
+  (let [tests [(blue/sample-test) (red/sample-test)]
+        start-stop-count (atom {:start 0 :stop 0})
+        sample-system {:greenlight.test-test/component 6}
+        meta-system (with-meta sample-system
+                      {`runner/start-system (fn [this] (swap! start-stop-count update :start inc) this)
+                       `runner/stop-system (fn [this] (swap! start-stop-count update :stop inc) nil)})]
+    (testing "metadata extension"
+      (runner/run-tests! (constantly meta-system) tests {})
+      (is (= 1 (:start @start-stop-count)))
+      (is (= 1 (:stop @start-stop-count))))
+    (testing "default do nothing"
+      (runner/run-tests! (constantly sample-system) tests {})
+      (is (= 1 (:start @start-stop-count)))
+      (is (= 1 (:stop @start-stop-count))))))

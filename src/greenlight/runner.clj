@@ -27,6 +27,24 @@
     :validate [#(< 1 %) "Must be greater than 1."]]
    ["-h" "--help"]])
 
+(defprotocol ManagedSystem
+  :extend-via-metadata true
+  (start-system [this])
+  (stop-system [this]))
+
+(extend-protocol ManagedSystem
+  Object
+  (start-system [this] this)
+  (stop-system [this] nil)
+  nil
+  (start-system [this] this)
+  (stop-system [this] nil)
+  com.stuartsierra.component.SystemMap
+  (start-system [this]
+    (component/start this))
+  (stop-system [this]
+    (component/stop this)))
+
 
 ;; ## Runner Commands
 
@@ -177,7 +195,7 @@
                (str "Invalid test suite configuration: "
                      (s/explain-str ::test/suite tests)))))
      (println "Starting test system...")
-     (let [system (component/start (new-system))]
+     (let [system (start-system (new-system))]
        (try
          (binding [test/*report* (partial report/handle-test-event
                                           {:print-color (not (:no-color options))})]
@@ -197,7 +215,7 @@
              ; Successful if every test passed.
              (every? (comp #{:pass} ::test/outcome) results)))
          (finally
-           (component/stop system)))))))
+           (stop-system system)))))))
 
 
 (defn run-all-tests!
