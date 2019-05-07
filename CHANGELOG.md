@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added the ability to use component systems other Stuart Sierra component
+  via a `runner/ManagedSystem` protocol.
+
 ## 0.1.6 - 2019-04-26
 
 ### Fixed
