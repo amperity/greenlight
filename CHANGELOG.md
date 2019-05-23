@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## 0.1.7 - 2019-05-23
+
 ### Added
 
 - Added the ability to use component systems other Stuart Sierra component
