@@ -17,7 +17,7 @@
                          {:time (format "%.3f" elapsed)}))]
     (not outcome)
       (conj [:skipped])
-    (= :error outcome) ;; TODO: timeout?
+    (or (= :error outcome) (= :timeout outcome))
       (conj [:error {:message message}])
     (= :failure outcome)
       (conj [:failure {:message message}])))
@@ -33,7 +33,7 @@
         :timestamp (str started-at)
         :tests (count steps)
         :time (format "%.3f" (/ duration 1e9))
-        :errors (:error outcomes 0) ;; TODO: timeout?
+        :errors (+ (:error outcomes 0) (:timeout outcomes 0))
         :failures (:fail outcomes 0)
         :skipped (get outcomes nil 0)})]
     (map (partial step->testcase ns))

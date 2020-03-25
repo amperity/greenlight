@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- JUnit test output now reports `:timeout`s as errors.
+
 ## 0.1.7 - 2019-05-23
 
 ### Added
