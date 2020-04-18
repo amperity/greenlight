@@ -41,6 +41,8 @@
       :greenlight.step/elapsed 1.0
       :greenlight.step/message "foo-error-step message"
       :greenlight.step/name 'foo-error-step}]}])
+
+
 (def ^:private junit-edn
   [:testsuites
    [:testsuite
