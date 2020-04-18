@@ -19,7 +19,7 @@
       (conj [:skipped])
     (or (= :error outcome) (= :timeout outcome))
       (conj [:error {:message message}])
-    (= :failure outcome)
+    (= :fail outcome)
       (conj [:failure {:message message}])))
 
 
