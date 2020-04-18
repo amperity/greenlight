@@ -17,5 +17,6 @@
 
 1. Deploy the library to Clojars: `lein deploy clojars`
 
-   You will need to be a member of the `amperity` organization on Clojars to
-   push artifacts.
+   You will need to be a member of the
+   [amperity](https://clojars.org/groups/amperity) group on Clojars to push
+   artifacts.
