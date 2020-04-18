@@ -11,11 +11,11 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.0"]
-   [org.clojure/tools.cli "0.3.5"]
+  [[org.clojure/clojure "1.10.1"]
+   [org.clojure/tools.cli "1.0.194"]
    [org.clojure/data.xml "0.0.8"]
-   [amperity/envoy "0.3.1"]
-   [com.stuartsierra/component "0.3.2"]]
+   [amperity/envoy "0.3.3"]
+   [com.stuartsierra/component "1.0.0"]]
 
   :codox
   {:metadata {:doc/format :markdown}
@@ -23,13 +23,13 @@
    :output-path "target/doc/codox"}
 
   :plugins
-  [[lein-codox "0.9.5"]
-   [lein-cloverage "1.0.9"]]
+  [[lein-codox "0.10.7"]
+   [lein-cloverage "1.1.2"]]
 
   :profiles
   {:repl
    {:source-paths ["dev"]
-    :dependencies [[org.clojure/tools.namespace "0.2.11"]]}
+    :dependencies [[org.clojure/tools.namespace "1.0.0"]]}
 
    :test
    {:dependencies [[commons-logging "1.2"]]
