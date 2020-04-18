@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Update dependencies to latest versions.
+- Exclude `clojure` from `lein-codox` dependencies so that it will actually
+  build.
 
 ## 0.2.0 - 2020-03-25
 
