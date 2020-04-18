@@ -23,7 +23,7 @@
    :output-path "target/doc/codox"}
 
   :plugins
-  [[lein-codox "0.10.7"]
+  [[lein-codox "0.10.7" :exclusions [org.clojure/clojure]]
    [lein-cloverage "1.1.2"]]
 
   :profiles
