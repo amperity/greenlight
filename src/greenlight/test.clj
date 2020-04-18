@@ -51,16 +51,19 @@
              :kind? vector?
              :min-count 1))
 
+
 (defn- contains-ns?
   "Returns true if at least one key is in the namespace provided."
   [m ns]
   (some #(= ns (namespace (key %))) m))
+
 
 (defn- attr-map?
   "Returns true if the map contains at least one key in the
   greenlight.test namespace."
   [o]
   (and (map? o) (contains-ns? o "greenlight.test")))
+
 
 (defmacro deftest
   "Defines a new integration test. In the first position, the value can
@@ -71,8 +74,8 @@
   (let [docstring (when (string? (first body))
                     (first body))
         body (if (string? (first body))
-                (rest body)
-                body)
+               (rest body)
+               body)
         attr-map (when (attr-map? (first body))
                    (first body))
         steps (if (attr-map? (first body))
@@ -111,7 +114,6 @@
     (if (and started-at ended-at)
       (/ (.between ChronoUnit/MILLIS started-at ended-at) 1e3)
       0.0)))
-
 
 
 ;; ## Test Execution
