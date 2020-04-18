@@ -13,6 +13,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Exclude `clojure` from `lein-codox` dependencies so that it will actually
   build.
 
+### Fixed
+
+- JUnit test output now properly adds `<failure>` child objects of `<testcase>`
+  objects.
+
 ## 0.2.0 - 2020-03-25
 
 ### Fixed
