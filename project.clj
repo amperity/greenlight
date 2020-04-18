@@ -1,4 +1,4 @@
-(defproject amperity/greenlight "0.3.0"
+(defproject amperity/greenlight "0.3.1-SNAPSHOT"
   :description "Clojure integration testing framework."
   :url "https://github.com/amperity/greenlight"
   :license {:name "Apache License 2.0"
