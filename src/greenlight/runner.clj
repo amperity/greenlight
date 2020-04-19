@@ -27,10 +27,14 @@
     :validate [#(< 1 %) "Must be greater than 1."]]
    ["-h" "--help"]])
 
+
 (defprotocol ManagedSystem
   :extend-via-metadata true
+
   (start-system [this])
+
   (stop-system [this]))
+
 
 (extend-protocol ManagedSystem
   Object
@@ -192,7 +196,7 @@
    (let [tests (filter-test-suite test-suite arguments)]
      (when-not (s/valid? ::test/suite tests)
        (throw (IllegalArgumentException.
-               (str "Invalid test suite configuration: "
+                (str "Invalid test suite configuration: "
                      (s/explain-str ::test/suite tests)))))
      (println "Starting test system...")
      (let [system (start-system (new-system))]
@@ -242,7 +246,6 @@
   (throw (RuntimeException. "NYI")))
 
 
-
 ;; ## Entry Point
 
 (defn ^:dynamic *exit*
@@ -267,33 +270,33 @@
         command (first arguments)]
     (cond
       errors
-        (*exit* 1 (str/join "\n" errors))
+      (*exit* 1 (str/join "\n" errors))
 
       (or (:help options) (nil? command) (= "help" command))
-        (do (println "Usage: [opts] <command> [args...]")
-            (newline)
-            (println "Commands:")
-            (println "  info [:only <namespace name>]")
-            (println "      Print out information about all tests or only tests in the namespace provided.")
-            (println "  test [:only <namespace name>]")
-            (println "      Run all tests or only tests in the namespace provided")
-            (println "  clean <result.edn> [...]")
-            (println "      Clean up resources from previous test runs.")
-            (println "  report <result.edn> [...]")
-            (println "      Generate reports from a set of test results.")
-            (println "  help")
-            (println "      Print out this usage information.")
-            (newline)
-            (println summary)
-            (*exit* (if (nil? command) 1 0)))
+      (do (println "Usage: [opts] <command> [args...]")
+          (newline)
+          (println "Commands:")
+          (println "  info [:only <namespace name>]")
+          (println "      Print out information about all tests or only tests in the namespace provided.")
+          (println "  test [:only <namespace name>]")
+          (println "      Run all tests or only tests in the namespace provided")
+          (println "  clean <result.edn> [...]")
+          (println "      Clean up resources from previous test runs.")
+          (println "  report <result.edn> [...]")
+          (println "      Generate reports from a set of test results.")
+          (println "  help")
+          (println "      Print out this usage information.")
+          (newline)
+          (println summary)
+          (*exit* (if (nil? command) 1 0)))
 
       :else
-        (->
-          (case command
-            "info" (print-test-info tests options (rest arguments))
-            "test" (run-tests! new-system tests options (rest arguments))
-            "clean" (clean-results! new-system options (rest arguments))
-            "report" (generate-report options (rest arguments))
-            (*exit* 1 (str "The argument " (pr-str command) " is not a supported command")))
-          (as-> result
-            (*exit* (if result 0 1)))))))
+      (->
+        (case command
+          "info" (print-test-info tests options (rest arguments))
+          "test" (run-tests! new-system tests options (rest arguments))
+          "clean" (clean-results! new-system options (rest arguments))
+          "report" (generate-report options (rest arguments))
+          (*exit* 1 (str "The argument " (pr-str command) " is not a supported command")))
+        (as-> result
+          (*exit* (if result 0 1)))))))

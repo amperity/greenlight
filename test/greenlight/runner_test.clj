@@ -36,6 +36,8 @@
 
 (test/deftest ^:a test-a "a")
 (test/deftest ^:b test-b "b")
+
+
 (test/deftest ^:c test-c
   {::test/group :group/c
    ::test/description "c"})
@@ -67,6 +69,7 @@
 
       {::test/group :group/c ::test/ns 'foo.bar}
       [])))
+
 
 (deftest system-handling-tests
   (let [tests [(blue/sample-test) (red/sample-test)]

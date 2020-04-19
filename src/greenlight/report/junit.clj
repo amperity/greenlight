@@ -16,11 +16,11 @@
                        (when elapsed
                          {:time (format "%.3f" elapsed)}))]
     (not outcome)
-      (conj [:skipped])
+    (conj [:skipped])
     (or (= :error outcome) (= :timeout outcome))
-      (conj [:error {:message message}])
+    (conj [:error {:message message}])
     (= :fail outcome)
-      (conj [:failure {:message message}])))
+    (conj [:failure {:message message}])))
 
 
 (defn- test->testsuite

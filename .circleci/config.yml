@@ -1,10 +1,14 @@
-version: 2
+version: 2.1
+
+executors:
+  clojure:
+    docker:
+      - image: circleci/clojure:openjdk-11-lein-2.9.1
+    working_directory: ~/repo
 
 jobs:
-  build:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/clojure:lein-2.7.1
+  test:
+    executor: clojure
     steps:
       - checkout
       - restore_cache:
@@ -25,3 +29,27 @@ jobs:
       - run:
           name: Publish Coverage
           command: "(curl -s https://codecov.io/bash > codecov) && bash codecov -f target/coverage/codecov.json"
+  style:
+    executor: clojure
+    steps:
+      - checkout
+      - run:
+          name: Install cljstyle
+          environment:
+            CLJSTYLE_VERSION: 0.12.1
+          command: |
+            wget https://github.com/greglook/cljstyle/releases/download/${CLJSTYLE_VERSION}/cljstyle_${CLJSTYLE_VERSION}_linux.tar.gz
+            tar -xzf cljstyle_${CLJSTYLE_VERSION}_linux.tar.gz
+      - run:
+          name: Check source formatting
+          command: "./cljstyle check --stats style-stats.tsv"
+      - store_artifacts:
+          path: style-stats.tsv
+          destination: style
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
+      - style

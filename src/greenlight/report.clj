@@ -67,73 +67,73 @@
   (binding [*print-color* (:print-color options)]
     (case (:type event)
       :test-start
-        (let [test-case (:test event)]
-          (printf "\n %s Testing %s\n"
-                  (color :magenta "*")
-                  (color [:bold :magenta] (::test/title test-case)))
-          (when (::test/ns test-case)
-            (printf " %s %s:%s\n"
-                    (color :magenta "|")
-                    (::test/ns test-case)
-                    (::test/line test-case -1)))
-          (when-let [desc (::test/description test-case)]
-            (printf " %s %s\n"
-                    (color :magenta "|")
-                    (color :yellow (::test/description test-case))))
-          (printf " %s\n" (color :magenta "|")))
+      (let [test-case (:test event)]
+        (printf "\n %s Testing %s\n"
+                (color :magenta "*")
+                (color [:bold :magenta] (::test/title test-case)))
+        (when (::test/ns test-case)
+          (printf " %s %s:%s\n"
+                  (color :magenta "|")
+                  (::test/ns test-case)
+                  (::test/line test-case -1)))
+        (when-let [desc (::test/description test-case)]
+          (printf " %s %s\n"
+                  (color :magenta "|")
+                  (color :yellow (::test/description test-case))))
+        (printf " %s\n" (color :magenta "|")))
 
       :step-start
-        (let [step (:step event)]
-          (printf " %s %s\n"
-                  (color :blue "+->>")
-                  (::step/title step)))
+      (let [step (:step event)]
+        (printf " %s %s\n"
+                (color :blue "+->>")
+                (::step/title step)))
 
       :step-end
-        (let [result (:step event)]
-          (run! ctest/report (::step/reports result))
-          (when-let [message (::step/message result)]
-            (printf " %s %s\n"
-                    (color :blue "|")
-                    (color (state-color (::step/outcome result))
-                           (::step/message result))))
-          (printf " %s [%s] (%s seconds)\n"
+      (let [result (:step event)]
+        (run! ctest/report (::step/reports result))
+        (when-let [message (::step/message result)]
+          (printf " %s %s\n"
                   (color :blue "|")
-                  (let [outcome (::step/outcome result "???")]
-                    (color
-                      [:bold (state-color outcome)]
-                      (str/upper-case (name outcome))))
-                  (color :cyan (format "%.3f" (::step/elapsed result))))
-          (printf " %s\n" (color :blue "|")))
+                  (color (state-color (::step/outcome result))
+                         (::step/message result))))
+        (printf " %s [%s] (%s seconds)\n"
+                (color :blue "|")
+                (let [outcome (::step/outcome result "???")]
+                  (color
+                    [:bold (state-color outcome)]
+                    (str/upper-case (name outcome))))
+                (color :cyan (format "%.3f" (::step/elapsed result))))
+        (printf " %s\n" (color :blue "|")))
 
       :cleanup-resource
-        (let [{:keys [resource-type parameters]} event]
-          (printf " %s Cleaning %s resource %s\n"
-                  (color :yellow "+->>")
-                  (color [:bold :yellow] resource-type)
-                  (color :magenta (pr-str parameters))))
+      (let [{:keys [resource-type parameters]} event]
+        (printf " %s Cleaning %s resource %s\n"
+                (color :yellow "+->>")
+                (color [:bold :yellow] resource-type)
+                (color :magenta (pr-str parameters))))
 
       :cleanup-error
-        (let [{:keys [error resource-type parameters]} event]
-          (printf " %s Failed to cleanup %s resource %s: %s\n"
-                  (color :yellow "|")
-                  (color [:bold :yellow] resource-type)
-                  (color :magenta (pr-str parameters))
-                  (color :red error)))
+      (let [{:keys [error resource-type parameters]} event]
+        (printf " %s Failed to cleanup %s resource %s: %s\n"
+                (color :yellow "|")
+                (color [:bold :yellow] resource-type)
+                (color :magenta (pr-str parameters))
+                (color :red error)))
 
       :test-end
-        (let [result (:test event)
-              outcome (::test/outcome result "---")
-              codes [:bold (state-color outcome)]]
-          (printf " %s\n" (color :blue "|"))
-          (printf " %s (%s seconds)\n"
-                  (color codes (str "* " (str/upper-case (name outcome))))
-                  (color :cyan (format "%.3f" (test/elapsed result))))
-          (when-let [message (::test/message result)]
-            (printf "   %s\n" message))
-          (newline))
+      (let [result (:test event)
+            outcome (::test/outcome result "---")
+            codes [:bold (state-color outcome)]]
+        (printf " %s\n" (color :blue "|"))
+        (printf " %s (%s seconds)\n"
+                (color codes (str "* " (str/upper-case (name outcome))))
+                (color :cyan (format "%.3f" (test/elapsed result))))
+        (when-let [message (::test/message result)]
+          (printf "   %s\n" message))
+        (newline))
 
       (println "Unknown report event type:" (pr-str event))))
-    (flush))
+  (flush))
 
 
 (defn print-console-results

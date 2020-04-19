@@ -106,17 +106,16 @@
                            qualify-config-keys
                            (update ::title #(or % (str *ns* \/ step-name))))]
     `(~@fn-declaration
-       ([]
-        (~step-name {}))
-       ([~'inputs & {:as ~'config}]
-        (merge
-          {::name '~step-name
-           ::inputs (merge
-                      ~(::inputs default-config)
-                      ~'inputs)}
-          ~(dissoc default-config ::inputs)
-          (qualify-config-keys ~'config))))))
-
+      ([]
+       (~step-name {}))
+      ([~'inputs & {:as ~'config}]
+       (merge
+         {::name '~step-name
+          ::inputs (merge
+                     ~(::inputs default-config)
+                     ~'inputs)}
+         ~(dissoc default-config ::inputs)
+         (qualify-config-keys ~'config))))))
 
 
 ;; ## Step Results
@@ -195,7 +194,6 @@
            (format "Don't know how to clean up resource"
                    resource-type
                    (pr-str parameters)))))
-
 
 
 ;; ## Execution Facilities

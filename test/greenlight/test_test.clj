@@ -6,6 +6,7 @@
     [greenlight.test :as test]
     [greenlight.test-suite.blue :as blue]))
 
+
 (deftest sample-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         sample-test (blue/sample-test)
@@ -28,8 +29,9 @@
             "greenlight.test-suite.blue/sample-step-without-optionals"
             "Another Step"]
            (butlast
-            (mapv ::step/title (::test/steps test-result)))))
+             (mapv ::step/title (::test/steps test-result)))))
     (is (= 5 (count (::test/steps test-result))))))
+
 
 (deftest optional-docstring-test
   (let [system (component/system-map :greenlight.test-test/component 6)
@@ -40,6 +42,7 @@
             "step-2"]
            (mapv ::step/title (::test/steps test-result))))
     (is (= 2 (count (::test/steps test-result))))))
+
 
 (deftest optional-attr-map-test
   (let [system (component/system-map :greenlight.test-test/component 6)
