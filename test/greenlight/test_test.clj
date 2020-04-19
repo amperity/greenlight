@@ -1,16 +1,18 @@
 (ns greenlight.test-test
   (:require
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]
     [greenlight.step :as step]
     [greenlight.test :as test]
-    [greenlight.test-suite.blue :as blue]))
+    [greenlight.test-suite.blue :as blue]
+    [greenlight.test-suite.yellow :as yellow]))
 
 
 (deftest sample-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         sample-test (blue/sample-test)
-        test-result (test/run-test! system sample-test)]
+        test-result (test/run-test! system {} sample-test)]
     (is (= :pass (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
@@ -22,7 +24,7 @@
 
   (let [system      (component/system-map :greenlight.test-test/component 5)
         sample-test (blue/sample-test)
-        test-result (test/run-test! system sample-test)]
+        test-result (test/run-test! system {} sample-test)]
     (is (= :fail (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
@@ -36,7 +38,7 @@
 (deftest optional-docstring-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         docstring-test (blue/optional-docstring-test)
-        test-result (test/run-test! system docstring-test)]
+        test-result (test/run-test! system {} docstring-test)]
     (is (= :pass (::test/outcome test-result)))
     (is (= ["step-1"
             "step-2"]
@@ -47,10 +49,35 @@
 (deftest optional-attr-map-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         attr-test (blue/optional-attr-map)
-        test-result (test/run-test! system attr-test)]
+        test-result (test/run-test! system {} attr-test)]
     (is (= (::test/description test-result) "foobar"))
     (is (= (::test/context test-result) {:foo :bar}))
     (is (= :pass (::test/outcome test-result)))
     (is (= ["step-1"]
            (mapv ::step/title (::test/steps test-result))))
     (is (= 1 (count (::test/steps test-result))))))
+
+
+(defmacro with-io
+  [input & forms]
+  `(binding [*in* (io/reader (char-array ~input))
+             *out* (io/writer (java.io.ByteArrayOutputStream.))]
+     ~@forms))
+
+
+(deftest prompt-on-failure
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        test (yellow/fail-until-3rd-try-test)
+        pass-result (with-io "y\ny\n" (test/run-test! system {:on-fail :prompt} test))
+        fail-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))]
+    (is (= :pass (::test/outcome pass-result)))
+    (is (= :fail (::test/outcome fail-result)))))
+
+
+(deftest prompt-on-error
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        test (yellow/error-until-3rd-try-test)
+        pass-result (with-io "y\ny\n" (test/run-test! system {:on-fail :prompt} test))
+        error-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))]
+    (is (= :pass (::test/outcome pass-result)))
+    (is (= :error (::test/outcome error-result)))))

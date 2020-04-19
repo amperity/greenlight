@@ -126,12 +126,33 @@
   nil)
 
 
+(defn- prompt-for-retry
+  "Enter a retry prompt loop. Return true if retry selected, false otherwise."
+  []
+  (loop []
+    (print (str "Retry? [y/n] "))
+    (flush)
+    (let [response (read-line)]
+      (cond
+        (re-find #"(?i)^\s*y(?:es)?\s*$" response) true
+        (re-find #"(?i)^\s*no?\s*$" response) false
+        :else (recur)))))
+
+
+(defn- retry-step?
+  "True if we should retry this step, false otherwise."
+  [options step]
+  (and (not= :pass (::step/outcome step))
+       (= (:on-fail options) :prompt)
+       (prompt-for-retry)))
+
+
 ; TODO: between steps, write out current state to a local file?
 (defn- run-steps!
   "Executes a sequence of test steps by running them in order until one fails.
   Returns a tuple with the enriched vector of steps run and the final context
   map."
-  [system ctx steps]
+  [system options ctx steps]
   (loop [history []
          ctx ctx
          steps steps]
@@ -147,7 +168,9 @@
         ; Continue while steps pass.
         (if (= :pass (::step/outcome step'))
           (recur history' ctx' (next steps))
-          [(vec (concat history' (rest steps))) ctx']))
+          (if (retry-step? options step')
+            (recur history ctx steps)
+            [(vec (concat history' (rest steps))) ctx'])))
       ; No more steps.
       [history ctx])))
 
@@ -173,12 +196,12 @@
 
 (defn run-test!
   "Execute a test. Returns the updated test map."
-  [system test-case]
+  [system options test-case]
   (*report* {:type :test-start
              :test test-case})
   (let [started-at (Instant/now)
         ctx (::context test-case {})
-        [history ctx] (run-steps! system ctx (::steps test-case))
+        [history ctx] (run-steps! system options ctx (::steps test-case))
         _ (run-cleanup! system history)
         ended-at (Instant/now)
         test-case (assoc test-case
