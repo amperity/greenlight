@@ -132,11 +132,10 @@
   (loop []
     (print (str "Retry? [y/n] "))
     (flush)
-    (let [response (read-line)]
-      (cond
-        (re-find #"(?i)^\s*y(?:es)?\s*$" response) true
-        (re-find #"(?i)^\s*no?\s*$" response) false
-        :else (recur)))))
+    (case (str/lower-case (str/trim (read-line)))]
+      ("y" "yes") true
+      ("n" "no") false
+      (recur))
 
 
 (defn- retry-step?
