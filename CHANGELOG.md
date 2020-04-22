@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
 - Prompt for retries if a step fails.
 
 ## 0.3.0 - 2020-04-18
