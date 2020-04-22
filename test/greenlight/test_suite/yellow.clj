@@ -20,8 +20,7 @@
   "A step that fails until the 3rd try."
   :title "Fail Until 3rd Try"
   :test (fn [_]
-          (swap! counter inc)
-          (is (= @counter 3))))
+          (is (= 3 (swap! counter inc)))))
 
 
 (defstep error-until-3rd-try
