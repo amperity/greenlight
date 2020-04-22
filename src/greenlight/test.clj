@@ -196,20 +196,22 @@
 
 (defn run-test!
   "Execute a test. Returns the updated test map."
-  [system options test-case]
-  (*report* {:type :test-start
-             :test test-case})
-  (let [started-at (Instant/now)
-        ctx (::context test-case {})
-        [history ctx] (run-steps! system options ctx (::steps test-case))
-        _ (run-cleanup! system history)
-        ended-at (Instant/now)
-        test-case (assoc test-case
-                         ::steps history
-                         ::context ctx
-                         ::outcome (last (keep ::step/outcome history))
-                         ::started-at started-at
-                         ::ended-at ended-at)]
-    (*report* {:type :test-end
-               :test test-case})
-    test-case))
+  ([system test-case]
+   (run-test! system {} test-case))
+  ([system options test-case]
+   (*report* {:type :test-start
+              :test test-case})
+   (let [started-at (Instant/now)
+         ctx (::context test-case {})
+         [history ctx] (run-steps! system options ctx (::steps test-case))
+         _ (run-cleanup! system history)
+         ended-at (Instant/now)
+         test-case (assoc test-case
+                          ::steps history
+                          ::context ctx
+                          ::outcome (last (keep ::step/outcome history))
+                          ::started-at started-at
+                          ::ended-at ended-at)]
+     (*report* {:type :test-end
+                :test test-case})
+     test-case)))

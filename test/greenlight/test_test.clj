@@ -12,7 +12,7 @@
 (deftest sample-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         sample-test (blue/sample-test)
-        test-result (test/run-test! system {} sample-test)]
+        test-result (test/run-test! system sample-test)]
     (is (= :pass (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
@@ -24,7 +24,7 @@
 
   (let [system      (component/system-map :greenlight.test-test/component 5)
         sample-test (blue/sample-test)
-        test-result (test/run-test! system {} sample-test)]
+        test-result (test/run-test! system sample-test)]
     (is (= :fail (::test/outcome test-result)))
     (is (= ["Sample Step"
             "Sample Step"
@@ -38,7 +38,7 @@
 (deftest optional-docstring-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         docstring-test (blue/optional-docstring-test)
-        test-result (test/run-test! system {} docstring-test)]
+        test-result (test/run-test! system docstring-test)]
     (is (= :pass (::test/outcome test-result)))
     (is (= ["step-1"
             "step-2"]
@@ -49,7 +49,7 @@
 (deftest optional-attr-map-test
   (let [system (component/system-map :greenlight.test-test/component 6)
         attr-test (blue/optional-attr-map)
-        test-result (test/run-test! system {} attr-test)]
+        test-result (test/run-test! system attr-test)]
     (is (= (::test/description test-result) "foobar"))
     (is (= (::test/context test-result) {:foo :bar}))
     (is (= :pass (::test/outcome test-result)))
