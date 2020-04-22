@@ -3,6 +3,7 @@
   specific usage scenario."
   (:require
     [clojure.spec.alpha :as s]
+    [clojure.string :as str]
     [greenlight.step :as step])
   (:import
     java.time.Instant
@@ -132,10 +133,10 @@
   (loop []
     (print (str "Retry? [y/n] "))
     (flush)
-    (case (str/lower-case (str/trim (read-line)))]
+    (case (str/lower-case (str/trim (read-line)))
       ("y" "yes") true
       ("n" "no") false
-      (recur))
+      (recur))))
 
 
 (defn- retry-step?
