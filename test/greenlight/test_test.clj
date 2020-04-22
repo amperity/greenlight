@@ -60,8 +60,8 @@
 
 (defmacro with-io
   [input & forms]
-  `(binding [*in* (io/reader (char-array ~input))
-             *out* (io/writer (java.io.ByteArrayOutputStream.))]
+  `(binding [*in* (io/reader (java.io.StringReader. ~input))
+             *out* (io/writer (java.io.StringWriter.))]
      ~@forms))
 
 
