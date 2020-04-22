@@ -27,8 +27,7 @@
   "A step that errors until the 3rd try."
   :title "Error Until 3rd Try"
   :test (fn [_]
-          (swap! counter inc)
-          (when (< @counter 3)
+          (when (< (swap! counter inc) 3)
             (throw (RuntimeException. "boo")))))
 
 
