@@ -165,7 +165,7 @@ use the `ManagedSystem` protocol provider in the runner namespace, which support
   java.util.Map
   (start-system [this] (integrant/init this))
   (stop-system [this] (integrant/halt! this)))
-  
+
 (runner/run-tests! (constantly {:some-system-map :with-components})
                    tests {})
 
@@ -174,7 +174,7 @@ use the `ManagedSystem` protocol provider in the runner namespace, which support
 (runner/run-tests! (constantly
                      (with-meta {:some-system-map :with-components}
                        {`runner/start-system (fn [this] (println "Starting test system...") this)
-                        `runner/stop-system (fn [this] (println "Stopping test system...") nil)})) 
+                        `runner/stop-system (fn [this] (println "Stopping test system...") nil)}))
                    tests {})
 ```
 
@@ -380,6 +380,24 @@ Groups of tests are run in parallel.
    (simple3)]
   {:parallel 2})
 ```
+
+## Retrying steps
+
+Integration tests can sometimes be slow, or reliant on less stable systems. When
+running such tests manually, it can be helpful to not have to rerun entire tests
+from the beginning. You can do this by passing `{:on-fail :prompt}` to the test
+runner:
+
+```
+(runner/run-tests!
+  (constantly {})
+  [(simple1)
+   (simple2)
+   (simple3)]
+  {:on-fail :prompt})
+```
+
+When a step fails, it will now ask if you want to retry the step.
 
 ## License
 

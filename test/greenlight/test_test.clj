@@ -1,10 +1,12 @@
 (ns greenlight.test-test
   (:require
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [com.stuartsierra.component :as component]
     [greenlight.step :as step]
     [greenlight.test :as test]
-    [greenlight.test-suite.blue :as blue]))
+    [greenlight.test-suite.blue :as blue]
+    [greenlight.test-suite.yellow :as yellow]))
 
 
 (deftest sample-test
@@ -54,3 +56,28 @@
     (is (= ["step-1"]
            (mapv ::step/title (::test/steps test-result))))
     (is (= 1 (count (::test/steps test-result))))))
+
+
+(defmacro with-io
+  [input & forms]
+  `(binding [*in* (io/reader (java.io.StringReader. ~input))
+             *out* (io/writer (java.io.StringWriter.))]
+     ~@forms))
+
+
+(deftest prompt-on-failure
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        test (yellow/fail-until-3rd-try-test)
+        pass-result (with-io "y\ny\n" (test/run-test! system {:on-fail :prompt} test))
+        fail-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))]
+    (is (= :pass (::test/outcome pass-result)))
+    (is (= :fail (::test/outcome fail-result)))))
+
+
+(deftest prompt-on-error
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        test (yellow/error-until-3rd-try-test)
+        pass-result (with-io "y\ny\n" (test/run-test! system {:on-fail :prompt} test))
+        error-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))]
+    (is (= :pass (::test/outcome pass-result)))
+    (is (= :error (::test/outcome error-result)))))

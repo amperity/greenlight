@@ -157,7 +157,7 @@
 
 (defn- execute-parallel
   "Run a collection of tests, using an executor pool with `n-threads`"
-  [system tests n-threads]
+  [system options tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
         printer (sync-printer)
         run-group (fn run-group
@@ -167,7 +167,7 @@
                         (fn [test]
                           (printer (str "* " (::test/title test) " running.\n"))
                           (with-delayed-output printer
-                            (test/run-test! system test)))
+                            (test/run-test! system options test)))
                         tests)))
         test-groups (group-by #(or (::test/group %) (gensym)) tests)]
     (try
@@ -206,8 +206,8 @@
            (println "Running" (count tests) "tests...")
            (let [results (let [parallelization (:parallel options 1)]
                            (if (< 1 parallelization)
-                             (execute-parallel system tests parallelization)
-                             (mapv (partial test/run-test! system) tests)))]
+                             (execute-parallel system options tests parallelization)
+                             (mapv (partial test/run-test! system options) tests)))]
              ;; TODO: check result spec?
              (newline)
              (report-results results options)
