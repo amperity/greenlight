@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [0.5.0] - 2020-08-29
+
+### Added
+- Correctly report uncaught error step outcomes
 
 ## [0.4.0] - 2020-04-23
 
