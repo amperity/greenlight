@@ -80,4 +80,5 @@
         pass-result (with-io "y\ny\n" (test/run-test! system {:on-fail :prompt} test))
         error-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))]
     (is (= :pass (::test/outcome pass-result)))
-    (is (= :error (::test/outcome error-result)))))
+    (is (= :error (::test/outcome error-result)))
+    (is (= :error (-> error-result ::test/steps last ::step/reports first :type)))))
