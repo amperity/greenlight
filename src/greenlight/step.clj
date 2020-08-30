@@ -313,13 +313,12 @@
                               (count @reports))))
                (save-output step ctx output)])))
         (catch Exception ex
+          (let [message (format "Unhandled %s: %s"
+                                (.getSimpleName (class ex))
+                                (.getMessage ex))]
           (ctest/do-report {:type :error
-                            :message "Uncaught exception, not in assertion."
+                            :message message
                             :expected nil
                             :actual ex})
-          [(output-step
-             :error
-             (format "Unhandled %s: %s"
-                     (.getSimpleName (class ex))
-                     (.getMessage ex)))
-           ctx])))))
+          [(output-step :error message)
+           ctx]))))))
