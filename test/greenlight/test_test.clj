@@ -93,4 +93,4 @@
     (is (= 1 (count reports)))
     (is (= :error (:type report)))
     (is (instance? Exception (:actual report)))
-    (is (= (:message report) (::step/message step)))))
+    (is (= (::step/message step) (:message report)))))
