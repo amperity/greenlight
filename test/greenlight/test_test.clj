@@ -86,7 +86,7 @@
 (deftest error-report
   (let [system (component/system-map :greenlight.test-test/component 6)
         test (yellow/error-until-3rd-try-test)
-        error-result (with-io "y\nn\n" (test/run-test! system {:on-fail :prompt} test))
+        error-result (test/run-test! system {} test)
         step (-> error-result ::test/steps last)
         reports (::step/reports step)
         report (first reports)]
