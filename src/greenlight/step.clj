@@ -316,9 +316,8 @@
           (let [message (format "Unhandled %s: %s"
                                 (.getSimpleName (class ex))
                                 (.getMessage ex))]
-          (ctest/do-report {:type :error
-                            :message message
-                            :expected nil
-                            :actual ex})
-          [(output-step :error message)
-           ctx]))))))
+            (ctest/do-report {:type :error
+                              :message message
+                              :expected nil
+                              :actual ex})
+            [(output-step :error message) ctx]))))))

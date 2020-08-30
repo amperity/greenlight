@@ -82,6 +82,7 @@
     (is (= :pass (::test/outcome pass-result)))
     (is (= :error (::test/outcome error-result)))))
 
+
 (deftest error-report
   (let [system (component/system-map :greenlight.test-test/component 6)
         test (yellow/error-until-3rd-try-test)
