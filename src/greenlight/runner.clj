@@ -9,12 +9,10 @@
     [clojure.tools.cli :as cli]
     [com.stuartsierra.component :as component]
     [greenlight.report :as report]
-    [greenlight.step :as step]
     [greenlight.test :as test])
   (:import
     (java.util.concurrent
-      Executors
-      Future)))
+      Executors)))
 
 
 (def cli-options
@@ -267,19 +265,19 @@
   JVM, so it is not suitable for interactive usage."
   [new-system tests args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)
-        command (first arguments)]
+        command (or (first arguments) "test")]
     (cond
       errors
       (*exit* 1 (str/join "\n" errors))
 
-      (or (:help options) (nil? command) (= "help" command))
+      (or (:help options) (= "help" command))
       (do (println "Usage: [opts] <command> [args...]")
           (newline)
           (println "Commands:")
           (println "  info [:only <namespace name>]")
           (println "      Print out information about all tests or only tests in the namespace provided.")
           (println "  test [:only <namespace name>]")
-          (println "      Run all tests or only tests in the namespace provided")
+          (println "      Run all tests or only tests in the namespace provided. This is the default if no command is provided.")
           (println "  clean <result.edn> [...]")
           (println "      Clean up resources from previous test runs.")
           (println "  report <result.edn> [...]")
