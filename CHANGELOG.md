@@ -9,10 +9,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ...
 
+## [0.6.0] - 2020-09-24
+
+### Added
+- Test runner will default to the "test" command if not provided
+
+
 ## [0.5.0] - 2020-08-29
 
 ### Added
 - Correctly report uncaught error step outcomes
+
 
 ## [0.4.0] - 2020-04-23
 
