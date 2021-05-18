@@ -1,5 +1,6 @@
 (ns greenlight.runner-test
   (:require
+    [clojure.java.io :as io]
     [clojure.test :refer :all]
     [greenlight.runner :as runner]
     [greenlight.test :as test]
@@ -86,3 +87,23 @@
       (runner/run-tests! (constantly sample-system) tests {})
       (is (= 1 (:start @start-stop-count)))
       (is (= 1 (:stop @start-stop-count))))))
+
+
+(deftest junit-reporting
+  (let [tests [(blue/sample-test) (red/sample-test)]
+        start-stop-count (atom {:start 0 :stop 0})
+        sample-system {:greenlight.test-test/component 6}
+        meta-system (with-meta sample-system
+                      {`runner/start-system (fn [this] (swap! start-stop-count update :start inc) this)
+                       `runner/stop-system (fn [this] (swap! start-stop-count update :stop inc) nil)})
+        junit-file (io/file "build/junit.xml")]
+    (.delete junit-file)
+    (.delete (.getParentFile junit-file))
+    (try
+      (testing "Reporting to junit file in directory that doesn't exist"
+        (runner/run-tests! (constantly sample-system) tests
+                           {:junit-report (.getAbsolutePath junit-file)})
+        (is (seq (slurp junit-file)) "JUnit file exists"))
+      (finally
+        (.delete junit-file)
+        (.delete (.getParentFile junit-file))))))

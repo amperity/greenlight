@@ -3,6 +3,7 @@
   takes a collection of test results as input and should produce some output,
   depending on the report type."
   (:require
+    [clojure.java.io :as io]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.test :as ctest]
@@ -165,7 +166,9 @@
 (defn write-junit-results
   "Render a set of test results to a JUnit XML file."
   [report-path results options]
-  (spit report-path (junit/report results options)))
+  (let [report-file (io/file report-path)]
+    (.mkdirs (.getParentFile report-file))
+    (spit report-file (junit/report results options))))
 
 
 (defn write-html-results
