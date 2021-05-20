@@ -167,7 +167,7 @@
   "Render a set of test results to a JUnit XML file."
   [report-path results options]
   (let [report-file (io/file report-path)]
-    (.mkdirs (.getParentFile report-file))
+    (io/make-parents report-file)
     (spit report-file (junit/report results options))))
 
 
