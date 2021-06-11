@@ -7,7 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-...
+### Added
+- JUnit reporting will now create the parent directory for the report file, if
+  needed. [#54](https://github.com/amperity/greenlight/pull/54)
+
 
 ## [0.6.0] - 2020-09-24
 
