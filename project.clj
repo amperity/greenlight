@@ -11,11 +11,11 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.1"]
-   [org.clojure/tools.cli "1.0.194"]
+  [[org.clojure/clojure "1.10.3"]
+   [org.clojure/tools.cli "1.0.206"]
    [org.clojure/data.xml "0.0.8"]
-   [amperity/envoy "0.3.3"]
-   [com.stuartsierra/component "1.0.0"]]
+   [amperity/envoy "1.0.0"]
+   [com.stuartsierra/component "1.1.0"]]
 
   :codox
   {:metadata {:doc/format :markdown}
@@ -29,7 +29,7 @@
   :profiles
   {:repl
    {:source-paths ["dev"]
-    :dependencies [[org.clojure/tools.namespace "1.0.0"]]}
+    :dependencies [[org.clojure/tools.namespace "1.3.0"]]}
 
    :test
    {:dependencies [[commons-logging "1.2"]]
