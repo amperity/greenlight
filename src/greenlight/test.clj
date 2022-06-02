@@ -15,18 +15,23 @@
 ;; Namespace where the test is defined.
 (s/def ::ns symbol?)
 
+
 ;; Source line where the test is defined.
 (s/def ::line integer?)
+
 
 ;; Title of the test run.
 (s/def ::title string?)
 
+
 ;; Human-friendly description of the scenario the test covers.
 (s/def ::description string?)
+
 
 ;; Test execution group tag. Tests within the same group
 ;; are executed in serial.
 (s/def ::group keyword?)
+
 
 ;; Sequence of steps to take for this test.
 (s/def ::steps
@@ -34,8 +39,10 @@
              :kind vector?
              :min-count 1))
 
+
 ;; Initial and final context map for the test.
 (s/def ::context map?)
+
 
 ;; The test case map defines metadata about the test and its steps.
 (s/def ::case
@@ -45,6 +52,7 @@
                 ::line
                 ::description
                 ::context]))
+
 
 ;; Collection of test cases.
 (s/def ::suite
@@ -99,8 +107,10 @@
 ;; Final outcome of the test case.
 (s/def ::outcome ::step/outcome)
 
+
 ;; When the test run started.
 (s/def ::started-at inst?)
+
 
 ;; When the test run ended.
 (s/def ::ended-at inst?)
@@ -123,7 +133,7 @@
   "Dynamic reporting function which is called at various points in the test
   execution. The event data should be a map containing at least a `:type` key."
   [event]
-  ; Default no-op action.
+  ;; Default no-op action.
   nil)
 
 
@@ -147,7 +157,7 @@
        (prompt-for-retry)))
 
 
-; TODO: between steps, write out current state to a local file?
+;; TODO: between steps, write out current state to a local file?
 (defn- run-steps!
   "Executes a sequence of test steps by running them in order until one fails.
   Returns a tuple with the enriched vector of steps run and the final context
@@ -157,7 +167,7 @@
          ctx ctx
          steps steps]
     (if-let [step (first steps)]
-      ; Run next step to advance the test.
+      ;; Run next step to advance the test.
       (let [step (step/initialize step ctx)
             _ (*report* {:type :step-start
                          :step step})
@@ -165,13 +175,13 @@
             history' (conj history step')]
         (*report* {:type :step-end
                    :step step'})
-        ; Continue while steps pass.
+        ;; Continue while steps pass.
         (if (= :pass (::step/outcome step'))
           (recur history' ctx' (next steps))
           (if (retry-step? options step')
             (recur history ctx steps)
             [(vec (concat history' (rest steps))) ctx'])))
-      ; No more steps.
+      ;; No more steps.
       [history ctx])))
 
 

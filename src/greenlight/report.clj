@@ -174,5 +174,5 @@
 (defn write-html-results
   "Render a set of test results to a human-friendly HTML file."
   [report-path results options]
-  ; TODO: implement html reporting (#7)
+  ;; TODO: implement html reporting (#7)
   (println "WARN: HTML reporting is not available yet"))
