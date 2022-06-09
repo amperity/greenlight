@@ -57,6 +57,17 @@
            (mapv ::step/title (::test/steps test-result))))
     (is (= 1 (count (::test/steps test-result))))))
 
+(deftest fixtures-test
+  (let [system (component/system-map :greenlight.test-test/component 6)
+        attr-test (blue/with-fixtures)
+        test-result (test/run-test! system attr-test)]
+    (is (= (::test/description test-result) "foobar"))
+    (is (= (::test/context test-result) {:foo :bar}))
+    (is (= :pass (::test/outcome test-result)))
+    (is (= 4 @blue/counter))
+    (is (= ["step-1" "step-2"]
+           (mapv ::step/title (::test/steps test-result))))
+    (is (= 2 (count (::test/steps test-result))))))
 
 (defmacro with-io
   [input & forms]

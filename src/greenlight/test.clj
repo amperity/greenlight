@@ -3,6 +3,7 @@
   specific usage scenario."
   (:require
     [clojure.spec.alpha :as s]
+    [clojure.test :as ctest]
     [clojure.string :as str]
     [greenlight.step :as step])
   (:import
@@ -152,27 +153,33 @@
   "Executes a sequence of test steps by running them in order until one fails.
   Returns a tuple with the enriched vector of steps run and the final context
   map."
-  [system options ctx steps]
-  (loop [history []
-         ctx ctx
-         steps steps]
-    (if-let [step (first steps)]
-      ; Run next step to advance the test.
-      (let [step (step/initialize step ctx)
-            _ (*report* {:type :step-start
-                         :step step})
-            [step' ctx'] (step/advance! system step ctx)
-            history' (conj history step')]
-        (*report* {:type :step-end
-                   :step step'})
-        ; Continue while steps pass.
-        (if (= :pass (::step/outcome step'))
-          (recur history' ctx' (next steps))
-          (if (retry-step? options step')
-            (recur history ctx steps)
-            [(vec (concat history' (rest steps))) ctx'])))
-      ; No more steps.
-      [history ctx])))
+  [system options ctx test-case]
+  (let [each-fixture-fn (ctest/join-fixtures (::each test-case))]
+    (loop [history []
+           ctx ctx
+           steps (::steps test-case)]
+      (if-let [step (first steps)]
+        ;; Run next step to advance the test.
+        (let [step (-> step
+                       (step/initialize ctx)
+                       (update ::step/test
+                               (fn [test-fn]
+                                 (fn [inputs]
+                                   (each-fixture-fn #(test-fn inputs))))))
+              _ (*report* {:type :step-start
+                           :step step})
+              [step' ctx'] (step/advance! system step ctx)
+              history' (conj history step')]
+          (*report* {:type :step-end
+                     :step step'})
+          ;; Continue while steps pass.
+          (if (= :pass (::step/outcome step'))
+            (recur history' ctx' (next steps))
+            (if (retry-step? options step')
+              (recur history ctx steps)
+              [(vec (concat history' (rest steps))) ctx'])))
+        ;; No more steps.
+        [history ctx]))))
 
 
 (defn- run-cleanup!
@@ -203,7 +210,14 @@
               :test test-case})
    (let [started-at (Instant/now)
          ctx (::context test-case {})
-         [history ctx] (run-steps! system options ctx (::steps test-case))
+         each-fixture-fn (-> test-case
+                             ::ns
+                             the-ns
+                             meta
+                             ::ctest/each
+                             ctest/join-fixtures)
+         [history ctx] (each-fixture-fn
+                        #(run-steps! system options ctx test-case))
          _ (run-cleanup! system history)
          ended-at (Instant/now)
          test-case (assoc test-case
