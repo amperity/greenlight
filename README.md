@@ -1,7 +1,7 @@
 Greenlight
 ==========
 
-[![CircleCI](https://circleci.com/gh/amperity/greenlight.svg?style=shield&circle-token=f934dddbf0f63d20e4df86f42f671b6f067227c2)](https://circleci.com/gh/amperity/greenlight)
+[![CircleCI](https://circleci.com/gh/amperity/greenlight.svg?style=shield&circle-token=6db00254bc95e32ec743f6e7e7e812c05f436f88)](https://circleci.com/gh/amperity/greenlight)
 [![codecov](https://codecov.io/gh/amperity/greenlight/branch/master/graph/badge.svg)](https://codecov.io/gh/amperity/greenlight)
 
 This library provides an _integration testing_ framework for Clojure. Running
