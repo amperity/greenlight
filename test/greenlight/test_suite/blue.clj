@@ -1,6 +1,6 @@
 (ns greenlight.test-suite.blue
   (:require
-    [clojure.test :refer [is]]
+    [clojure.test :refer [is use-fixtures]]
     [com.stuartsierra.component :as component]
     [greenlight.step :as step :refer [defstep]]
     [greenlight.test :as test :refer [deftest]]))
@@ -51,6 +51,31 @@
           :test  (fn [_]
                    (is (= 1 1)))})
 
+(def counter
+  (atom 0))
+
+(use-fixtures :each
+  (fn [f]
+    (reset! counter 0)
+    (f)))
+
+(deftest with-fixtures
+  #::test{:description "foobar"
+          :context {:foo :bar}
+          :each [(fn [f]
+                   (swap! counter inc)
+                   (f))
+                 (fn [f]
+                   (swap! counter inc)
+                   (f))]}
+  #::step{:name  'step-1
+          :title "step-1"
+          :test  (fn [_]
+                   (is (= 1 1)))}
+  #::step{:name  'step-2
+          :title "step-2"
+          :test  (fn [_]
+                   (is (= 1 1)))})
 
 (deftest sample-test
   "A sample greenlight test in the blue test suite"
