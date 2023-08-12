@@ -211,10 +211,10 @@
              (report-results results options)
              (when-let [result-path (:output options)]
                (println "Saving test results to" result-path)
-               ; FIXME: this results in unreadable data because it often includes
-               ; exceptions in the assertion reports.
+               ;; FIXME: this results in unreadable data because it often includes
+               ;; exceptions in the assertion reports.
                (spit result-path (prn-str results)))
-             ; Successful if every test passed.
+             ;; Successful if every test passed.
              (every? (comp #{:pass} ::test/outcome) results)))
          (finally
            (stop-system system)))))))
@@ -231,7 +231,7 @@
   [new-system options result-files]
   (prn options)
   (prn result-files)
-  ; TODO: load and clean results (#4)
+  ;; TODO: load and clean results (#4)
   (throw (RuntimeException. "NYI")))
 
 
@@ -240,7 +240,7 @@
   [options result-files]
   (prn options)
   (prn result-files)
-  ; TODO: load and report results (#5)
+  ;; TODO: load and report results (#5)
   (throw (RuntimeException. "NYI")))
 
 
