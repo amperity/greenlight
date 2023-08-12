@@ -11,7 +11,7 @@
   :pedantic? :abort
 
   :dependencies
-  [[org.clojure/clojure "1.10.1"]
+  [[org.clojure/clojure "1.11.1"]
    [org.clojure/tools.cli "1.0.194"]
    [org.clojure/data.xml "0.0.8"]
    [amperity/envoy "0.3.3"]
