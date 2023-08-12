@@ -184,14 +184,14 @@
   "Multimethod to clean up a created resource after a test finishes. Given the
   entire system to choose dependencies from."
   (fn dispatch
-    [system resource-type parameters]
+    [_system resource-type _parameters]
     resource-type))
 
 
 (defmethod clean! :default
-  [system resource-type parameters]
+  [_system resource-type parameters]
   (throw (RuntimeException.
-           (format "Don't know how to clean up resource"
+           (format "Don't know how to clean up resource type %s with parameters %s"
                    resource-type
                    (pr-str parameters)))))
 
