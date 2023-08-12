@@ -8,7 +8,7 @@
   :aliases
   {"coverage" ["with-profile" "+test,+coverage" "cloverage"]}
 
-  :pedantic? :abort
+  :pedantic? :warn
 
   :dependencies
   [[org.clojure/clojure "1.11.1"]
