@@ -12,12 +12,14 @@
 ;; Step name symbol.
 (s/def ::name symbol?)
 
+
 ;; Human friendly title string for the step.
 ;; Can be supplied as a string or a function of the test context
 ;; that returns a string.
 (s/def ::title
   (s/or :str string?
         :fn fn?))
+
 
 ;; Used for context lookups. Can be a keyword for direct access,
 ;; a collection of values for `get-in`, or a function of the context.
@@ -26,9 +28,11 @@
         :kws (s/coll-of any? :min-count 1 :kind sequential?)
         :fn fn?))
 
+
 ;; System component keyword
 (s/def ::component
   keyword?)
+
 
 ;; Map of inputs for test function. Value can be
 ;; a value, component or context key.
@@ -38,6 +42,7 @@
                   :component (s/keys :req [::component])
                   :value any?)))
 
+
 ;; Output result to store in step context. Can be a keyword,
 ;; a collection of values as keys, or a function (ctx, return-value) -> ctx'
 (s/def ::output
@@ -45,13 +50,16 @@
         :kws (s/coll-of any? :min-count 1 :kind sequential?)
         :fn fn?))
 
+
 ;; The timeout defines the maximum amount of time that the step will be allowed
 ;; to run, in seconds. Steps which exceed this will fail the test.
 (s/def ::timeout pos-int?)
 
+
 ;; Function which will be invoked with the step configuration, selected
 ;; components, and current test context in order to execute the test logic.
 (s/def ::test fn?)
+
 
 ;; The configuration map ultimately drives the execution of each step. This map
 ;; is built when tests are initialized and immutable afterwards.
@@ -127,20 +135,25 @@
 ;; - `:timeout` if the step ran longer than the allowed duration.
 (s/def ::outcome #{:pass :fail :error :timeout})
 
+
 ;; A message to the user about why the step has its current state. May include
 ;; remediation steps or areas to look at fixing.
 (s/def ::message string?)
 
+
 ;; Sequence of cleanup actions to take.
 (s/def ::cleanup (s/coll-of any? :kind vector?))
+
 
 ;; Duration in seconds that the step ran for.
 (s/def ::elapsed float?)
 
+
 ;; Collection of reported clojure.test assertions.
 (s/def ::reports (s/coll-of map? :kind vector?))
 
-; TODO: capture stdout/stderr/logs?
+
+;; TODO: capture stdout/stderr/logs?
 
 ;; Aggregate result fields.
 (s/def ::results
@@ -184,14 +197,14 @@
   "Multimethod to clean up a created resource after a test finishes. Given the
   entire system to choose dependencies from."
   (fn dispatch
-    [system resource-type parameters]
+    [_system resource-type _parameters]
     resource-type))
 
 
 (defmethod clean! :default
-  [system resource-type parameters]
+  [_system resource-type parameters]
   (throw (RuntimeException.
-           (format "Don't know how to clean up resource"
+           (format "Don't know how to clean up resource type %s with parameters %s"
                    resource-type
                    (pr-str parameters)))))
 

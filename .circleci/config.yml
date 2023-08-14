@@ -26,9 +26,6 @@ jobs:
       - store_artifacts:
           path: target/coverage
           destination: coverage
-      - run:
-          name: Publish Coverage
-          command: "(curl -s https://codecov.io/bash > codecov) && bash codecov -f target/coverage/codecov.json"
   style:
     executor: clojure
     steps:
@@ -36,7 +33,7 @@ jobs:
       - run:
           name: Install cljstyle
           environment:
-            CLJSTYLE_VERSION: 0.12.1
+            CLJSTYLE_VERSION: 0.15.0
           command: |
             wget https://github.com/greglook/cljstyle/releases/download/${CLJSTYLE_VERSION}/cljstyle_${CLJSTYLE_VERSION}_linux.tar.gz
             tar -xzf cljstyle_${CLJSTYLE_VERSION}_linux.tar.gz
