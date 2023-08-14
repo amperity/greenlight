@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Update Clojure to 1.11.1. [#60](https://github.com/amperity/greenlight/pull/60)
+
+### Fixed
+- Fix a call to `clojure.core/format` with an invalid format string. [#60](https://github.com/amperity/greenlight/pull/60)
+
 
 ## [0.6.1] - 2021-06-11
 
@@ -104,7 +110,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 Initial project release
 
 
-[Unreleased]: https://github.com/amperity/greenlight/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/amperity/greenlight/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/amperity/greenlight/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/amperity/greenlight/compare/0.5.0...0.6.0
+[0.5.0]: https://github.com/amperity/greenlight/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/amperity/greenlight/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/amperity/greenlight/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/amperity/greenlight/compare/0.1.7...0.2.0
