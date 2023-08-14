@@ -1,7 +1,7 @@
 (ns greenlight.test-test
   (:require
     [clojure.java.io :as io]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is]]
     [com.stuartsierra.component :as component]
     [greenlight.step :as step]
     [greenlight.test :as test]
@@ -94,3 +94,27 @@
     (is (= :error (:type report)))
     (is (instance? Exception (:actual report)))
     (is (= (::step/message step) (:message report)))))
+
+
+(def mock-exception
+  (ex-info "ouch" {:some "data"}))
+
+
+(step/defstep step-that-throws
+  "A step that throws an exception."
+  :title "Throw an exception."
+  :test (fn [_]
+          (throw mock-exception)))
+
+
+(test/deftest test-that-throws
+  "A test that throws an exception."
+  (step-that-throws))
+
+
+(deftest exception-in-step
+  (let [result (test/run-test! {} {} (test-that-throws))
+        step (-> result ::test/steps last)
+        report (first (::step/reports step))]
+    (is (= :error (:type report)))
+    (is (identical? mock-exception (:actual report)))))
