@@ -307,8 +307,14 @@
             step-future (future (test-fn inputs))
             result (try
                      (deref step-future (* 1000 timeout) ::timeout)
+                     ;; If deref throws an ExecutionException, it means user
+                     ;; code in the step threw an exception and greenlight should
+                     ;; report the exception in user code, which is the cause.
                      (catch ExecutionException ex
-                       (ex-cause ex)))]
+                       (ex-cause ex))
+                     ;; Otherwise, exceptions can be reported as-is.
+                     (catch Exception ex
+                       ex))]
         (cond
           (= result ::timeout)
           (do
