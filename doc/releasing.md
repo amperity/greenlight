@@ -8,10 +8,13 @@
    [keepachangelog.com](http://keepachangelog.com/) and [Semantic
    Versioning](http://semver.org/)
 
-1. Commit changes, create a PR, merge the PR into master.
+1. Commit changes, create a PR, merge the PR into main.
 
-1. Create a signed tag at the release commit: `git tag -s X.X.X -m "X.X.X
-   Release" && git push origin X.X.X`
+1. Create a signed tag at the release commit:
+   ```
+   git tag -s X.X.X -m "X.X.X Release"
+   git push origin X.X.X
+   ```
 
    This will automatically create a release on GitHub.
 
