@@ -2,6 +2,7 @@
   "Entry point for running a suite of tests and generating reports from the
   results."
   (:require
+    [clj-commons.pretty.repl :as pretty.repl]
     [clojure.set :as set]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
@@ -266,6 +267,7 @@
   [new-system tests args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)
         command (or (first arguments) "test")]
+    (pretty.repl/install-pretty-exceptions)
     (cond
       errors
       (*exit* 1 (str/join "\n" errors))

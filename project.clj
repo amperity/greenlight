@@ -15,7 +15,8 @@
    [org.clojure/tools.cli "1.0.194"]
    [org.clojure/data.xml "0.0.8"]
    [amperity/envoy "0.3.3"]
-   [com.stuartsierra/component "1.0.0"]]
+   [com.stuartsierra/component "1.0.0"]
+   [org.clj-commons/pretty "2.1"]]
 
   :codox
   {:metadata {:doc/format :markdown}

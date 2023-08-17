@@ -8,6 +8,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- When an unhandled exception is thrown in a test, report the
+  exception that was thrown in the test instead of reporting an
+  ExecutionException that was thrown in greenlight code. [#59](https://github.com/amperity/greenlight/pull/59)
+- Use [org.clj-commons/pretty](https://github.com/clj-commons/pretty) for pretty
+  formatting of exceptions. [#59](https://github.com/amperity/greenlight/pull/59)
 - Update Clojure to 1.11.1. [#60](https://github.com/amperity/greenlight/pull/60)
 
 ### Fixed

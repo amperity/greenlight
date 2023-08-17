@@ -4,7 +4,9 @@
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.test :as ctest]
-    [greenlight.assert :as assert]))
+    [greenlight.assert :as assert])
+  (:import
+    java.util.concurrent.ExecutionException))
 
 
 ;; ## Step Configuration
@@ -299,38 +301,54 @@
                             ::reports @reports)]
     (binding [ctest/report (partial swap! reports conj)
               *pending-cleanups* (atom [])]
-      (try
-        (let [test-fn (::test step)
-              timeout (::timeout step 60)
-              inputs (collect-inputs system ctx step)
-              step-future (future (test-fn inputs))
-              output (deref step-future (* 1000 timeout) ::timeout)]
-          (if (= output ::timeout)
-            (do
-              (future-cancel step-future)
-              [(output-step
-                 :timeout
-                 (format "Step timed out after %d seconds" timeout))
-               ctx])
-            (let [report-types (group-by assert/report->outcome @reports)
-                  passed? (and (empty? (::assert/fail report-types))
-                               (empty? (::assert/error report-types)))]
-              [(output-step
-                 (if passed? :pass :fail)
-                 (->> report-types
-                      (map #(format "%d %s"
-                                    (count (val %))
-                                    (name (key %))))
-                      (str/join ", ")
-                      (format "%d assertions (%s)"
-                              (count @reports))))
-               (save-output step ctx output)])))
-        (catch Exception ex
-          (let [message (format "Unhandled %s: %s"
-                                (.getSimpleName (class ex))
-                                (.getMessage ex))]
+      (let [test-fn (::test step)
+            timeout (::timeout step 60)
+            inputs (collect-inputs system ctx step)
+            step-future (future (test-fn inputs))
+            result (try
+                     (deref step-future (* 1000 timeout) ::timeout)
+                     ;; If deref throws an ExecutionException, it means user
+                     ;; code in the step threw an exception and greenlight should
+                     ;; report the exception in user code, which is the cause.
+                     (catch ExecutionException ex
+                       (ex-cause ex))
+                     ;; Otherwise, exceptions can be reported as-is.
+                     (catch Exception ex
+                       ex))]
+        (cond
+          (= result ::timeout)
+          (do
+            (future-cancel step-future)
+            [(output-step
+               :timeout
+               (format "Step timed out after %d seconds" timeout))
+             ctx])
+
+          (instance? Throwable result)
+          (let [ex ^Throwable result
+                message (str "Unhandled "
+                             (.getName (class ex))
+                             ": "
+                             (ex-message ex)
+                             (when-let [data (ex-data ex)]
+                               (str " " (pr-str data))))]
             (ctest/do-report {:type :error
                               :message message
                               :expected nil
                               :actual ex})
-            [(output-step :error message) ctx]))))))
+            [(output-step :error message) ctx])
+
+          :else
+          (let [report-types (group-by assert/report->outcome @reports)
+                passed? (and (empty? (::assert/fail report-types))
+                             (empty? (::assert/error report-types)))]
+            [(output-step
+               (if passed? :pass :fail)
+               (->> report-types
+                    (map #(format "%d %s"
+                                  (count (val %))
+                                  (name (key %))))
+                    (str/join ", ")
+                    (format "%d assertions (%s)"
+                            (count @reports))))
+             (save-output step ctx result)]))))))
