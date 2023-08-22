@@ -6,7 +6,11 @@ follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-...
+
+### Fixed
+- Fix a bug introduced in 0.7.0 where _returning_ an exception from a step causes
+  the step to fail and be reported as having thrown an unhandled exception.
+  [#64](https://github.com/amperity/greenlight/pull/64)
 
 ## [0.7.0] - 2023-08-17
 
