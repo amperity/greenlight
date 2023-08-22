@@ -100,21 +100,39 @@
   (ex-info "ouch" {:some "data"}))
 
 
-(step/defstep step-that-throws
+(step/defstep step-that-throws-an-unhandled-exception
   "A step that throws an exception."
   :title "Throw an exception."
   :test (fn [_]
           (throw mock-exception)))
 
 
-(test/deftest test-that-throws
+(test/deftest test-that-throws-an-unhandled-exception
   "A test that throws an exception."
-  (step-that-throws))
+  (step-that-throws-an-unhandled-exception))
 
 
-(deftest exception-in-step
-  (let [result (test/run-test! {} {} (test-that-throws))
+(deftest test-throws-an-unhandled-exception
+  (let [result (test/run-test! {} {} (test-that-throws-an-unhandled-exception))
         step (-> result ::test/steps last)
         report (first (::step/reports step))]
     (is (= :error (:type report)))
     (is (identical? mock-exception (:actual report)))))
+
+
+(step/defstep step-that-returns-an-exception
+  "A step that throws an exception."
+  :title "Throw an exception."
+  :test (fn [_]
+          (is (thrown? Exception
+                (throw (Exception.))))))
+
+
+(test/deftest test-with-a-step-that-returns-an-exception
+  "A test that throws an exception."
+  (step-that-returns-an-exception))
+
+
+(deftest test-returns-an-exception
+  (let [result (test/run-test! {} {} (test-with-a-step-that-returns-an-exception))]
+    (is (= :pass (::test/outcome result)))))
