@@ -121,15 +121,15 @@
 
 
 (step/defstep step-that-returns-an-exception
-  "A step that throws an exception."
-  :title "Throw an exception."
+  "A step that returns an exception object."
+  :title "Return an exception object."
   :test (fn [_]
           (is (thrown? Exception
                 (throw (Exception.))))))
 
 
 (test/deftest test-with-a-step-that-returns-an-exception
-  "A test that throws an exception."
+  "A test with a step that returns an exception object."
   (step-that-returns-an-exception))
 
 
