@@ -6,6 +6,9 @@ follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+...
+
+## [0.7.1] - 2023-08-22
 
 ### Fixed
 - Fix a bug introduced in 0.7.0 where _returning_ an exception from a step causes
@@ -122,7 +125,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 Initial project release
 
 
-[Unreleased]: https://github.com/amperity/greenlight/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/amperity/greenlight/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/amperity/greenlight/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/amperity/greenlight/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/amperity/greenlight/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/amperity/greenlight/compare/0.5.0...0.6.0
