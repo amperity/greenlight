@@ -305,16 +305,16 @@
             timeout (::timeout step 60)
             inputs (collect-inputs system ctx step)
             step-future (future (test-fn inputs))
-            result (try
-                     (deref step-future (* 1000 timeout) ::timeout)
-                     ;; If deref throws an ExecutionException, it means user
-                     ;; code in the step threw an exception and greenlight should
-                     ;; report the exception in user code, which is the cause.
-                     (catch ExecutionException ex
-                       (ex-cause ex))
-                     ;; Otherwise, exceptions can be reported as-is.
-                     (catch Exception ex
-                       ex))]
+            [step-threw? result] (try
+                                   [false (deref step-future (* 1000 timeout) ::timeout)]
+                                   ;; If deref throws an ExecutionException, it means user
+                                   ;; code in the step threw an exception and greenlight should
+                                   ;; report the exception in user code, which is the cause.
+                                   (catch ExecutionException ex
+                                     [true (ex-cause ex)])
+                                   ;; Otherwise, exceptions can be reported as-is.
+                                   (catch Exception ex
+                                     [true ex]))]
         (cond
           (= result ::timeout)
           (do
@@ -324,7 +324,7 @@
                (format "Step timed out after %d seconds" timeout))
              ctx])
 
-          (instance? Throwable result)
+          step-threw?
           (let [ex ^Throwable result
                 message (str "Unhandled "
                              (.getName (class ex))
