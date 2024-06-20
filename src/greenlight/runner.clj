@@ -5,6 +5,7 @@
     [clj-commons.pretty.repl :as pretty.repl]
     [clojure.set :as set]
     [clojure.spec.alpha :as s]
+    [clojure.stacktrace :as stacktrace]
     [clojure.string :as str]
     [clojure.test :as ctest]
     [clojure.tools.cli :as cli]
@@ -294,7 +295,14 @@
       (->
         (case command
           "info" (print-test-info tests options (rest arguments))
-          "test" (run-tests! new-system tests options (rest arguments))
+          "test" (try
+                   (run-tests! new-system tests options (rest arguments))
+                   (catch Exception ex
+                     (println "Uncaught exception in test runner:")
+                     (stacktrace/print-stack-trace ex)
+                     (println "Caused by:")
+                     (stacktrace/print-cause-trace ex)
+                     (*exit* 1)))
           "clean" (clean-results! new-system options (rest arguments))
           "report" (generate-report options (rest arguments))
           (*exit* 1 (str "The argument " (pr-str command) " is not a supported command")))
