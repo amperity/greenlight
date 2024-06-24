@@ -6,6 +6,9 @@ follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+...
+
+## [0.7.2] - 2024-06-24
 
 ### Changed
 - When an unhandled exception is thrown by the test runner, the main
@@ -131,7 +134,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 Initial project release
 
 
-[Unreleased]: https://github.com/amperity/greenlight/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/amperity/greenlight/compare/0.7.2...HEAD
+[0.7.2]: https://github.com/amperity/greenlight/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/amperity/greenlight/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/amperity/greenlight/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/amperity/greenlight/compare/0.6.0...0.6.1
