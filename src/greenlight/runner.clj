@@ -299,8 +299,6 @@
                    (run-tests! new-system tests options (rest arguments))
                    (catch Exception ex
                      (println "Uncaught exception in test runner:")
-                     (stacktrace/print-stack-trace ex)
-                     (println "Caused by:")
                      (stacktrace/print-cause-trace ex)
                      (*exit* 1)))
           "clean" (clean-results! new-system options (rest arguments))
