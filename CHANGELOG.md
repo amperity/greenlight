@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   function will print the stacktraces for the exception and properly exit.
   This is to avoid the edge case where a thread started by the test system
   can cause the JVM to indefinitely hang instead of exiting.
+  [#66](https://github.com/amperity/greenlight/pull/66)
 
 ## [0.7.1] - 2023-08-22
 
