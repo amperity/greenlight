@@ -6,7 +6,12 @@ follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-...
+
+### Changed
+- When an unhandled exception is thrown by the test runner, the main
+  function will print the stacktraces for the exception and properly exit.
+  This is to avoid the edge case where a thread started by the test system
+  can cause the JVM to indefinitely hang instead of exiting.
 
 ## [0.7.1] - 2023-08-22
 
