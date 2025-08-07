@@ -157,10 +157,17 @@
       (doseq [[outcome freq] (->> (map ::test/outcome results)
                                   (frequencies)
                                   (sort-by val (comp - compare)))]
-        (printf "%s %d %s\n"
-                (color (state-color outcome) "*")
+        (printf "%d %s:\n"
                 freq
-                (name outcome))))))
+                (name outcome))
+        (doseq [result (filter (comp #{outcome} ::test/outcome) results)]
+          (printf "%s %s%s\n"
+                  (color (state-color outcome) "*")
+                  (if-let [group (::test/group result)]
+                    (str group " - ")
+                    "")
+                  (::test/title result)))
+        (newline)))))
 
 
 (defn write-junit-results

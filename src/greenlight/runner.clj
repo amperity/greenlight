@@ -13,6 +13,9 @@
     [greenlight.report :as report]
     [greenlight.test :as test])
   (:import
+    java.time.Duration
+    java.time.Instant
+    java.time.temporal.ChronoUnit
     (java.util.concurrent
       Executors)))
 
@@ -159,7 +162,12 @@
   "Run a collection of tests, using an executor pool with `n-threads`"
   [system options tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
-        printer (sync-printer)
+        printer* (sync-printer)
+        last-print (atom (Instant/now))
+        printer (fn [s]
+                  (reset! last-print (Instant/now))
+                  (printer* s))
+        tests-running (atom #{})
         run-group (fn run-group
                     [tests]
                     (bound-fn []
@@ -167,7 +175,12 @@
                         (fn [test]
                           (printer (str "* " (::test/title test) " running.\n"))
                           (with-delayed-output printer
-                            (test/run-test! system options test)))
+                            (let [test-info (assoc test ::started-at (Instant/now))]
+                              (swap! tests-running conj test-info)
+                              (try
+                                (test/run-test! system options test)
+                                (finally
+                                  (swap! tests-running disj test-info))))))
                         tests)))
         test-groups (group-by #(or (::test/group %) (gensym)) tests)]
     (try
@@ -177,14 +190,45 @@
       (printer (format "Starting %d test groups with a parallelization factor of %d.\n"
                        (count test-groups)
                        n-threads))
-      (->> test-groups
-           (map
-             (fn submit-group
-               [[_ group-tests]]
-               (.submit exec-pool ^Callable (run-group group-tests))))
-           (doall)
-           (map deref)
-           (into [] cat))
+      (let [tests-finished (promise)
+            reporter (Thread.
+                       (fn []
+                         (try
+                           (loop []
+                             (when (not (realized? tests-finished))
+                               (Thread/sleep 1000)
+                               (when (.isBefore @last-print (.minus (Instant/now) 15 ChronoUnit/SECONDS))
+                                 (let [running @tests-running]
+                                   (printer
+                                     (str (count running)
+                                          " "
+                                          (if (< 1 (count running))
+                                            "tests are"
+                                            "test is")
+                                          " running:\n"
+                                          (str/join "\n"
+                                                    (for [test (sort-by ::test/group running)]
+                                                      (str "* "
+                                                           (when-let [group (::test/group test)]
+                                                             (str group " - "))
+                                                           (::test/title test)
+                                                           " (" (.getSeconds (Duration/between (::started-at test) (Instant/now))) "s)")))
+                                          "\n\n"))))
+                               (recur)))
+                           (catch InterruptedException _))))]
+        (.start reporter)
+        (let [results (->> test-groups
+                           (map
+                             (fn submit-group
+                               [[_ group-tests]]
+                               (.submit exec-pool ^Callable (run-group group-tests))))
+                           (doall)
+                           (map deref)
+                           (into [] cat))]
+          (deliver tests-finished true)
+          (.interrupt reporter)
+          (.join reporter)
+          results))
       (finally
         (.shutdownNow exec-pool)))))
 
