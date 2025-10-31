@@ -233,6 +233,7 @@
         (.shutdownNow exec-pool)))))
 
 
+(def debug nil)
 (defn run-tests!
   "Run a collection of tests."
   ([new-system test-suite options] (run-tests! new-system test-suite options []))
@@ -255,6 +256,7 @@
              ;; TODO: check result spec?
              (newline)
              (report-results results options)
+             (alter-var-root #'debug (constantly results))
              (when-let [result-path (:output options)]
                (println "Saving test results to" result-path)
                ;; FIXME: this results in unreadable data because it often includes
