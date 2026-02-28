@@ -150,18 +150,24 @@
                        :reports (count (mapcat ::step/reports
                                                (::test/steps result)))}))
                   {} results)]
-      (printf "Ran %s tests containing %s steps with %s assertions.\n"
+      (newline)
+      (println "-----------------------------------------------------------")
+      (println "TEST RESULTS")
+      (println "-----------------------------------------------------------")
+      (newline)
+      (printf "Ran %s tests containing %s steps with %s assertions:"
               (color :cyan (:tests stats))
               (color :cyan (:steps stats))
               (color [:bold :cyan] (:reports stats)))
       (newline)
-      (println "Test results:")
-      (doseq [[outcome freq] (->> (map ::test/outcome results)
-                                  (frequencies)
-                                  (sort-by val (comp - compare)))]
-        (printf "%d %s:\n"
-                freq
-                (name outcome))
+      (newline)
+      (doseq [[outcome num-tests] (->> results
+                                       (map ::test/outcome)
+                                       (frequencies)
+                                       (sort-by val (comp - compare)))]
+        (printf "%s %s\n"
+                (color (state-color outcome) (str outcome))
+                num-tests)
         (doseq [result (filter (comp #{outcome} ::test/outcome) results)]
           (printf "%s %s%s\n"
                   (color (state-color outcome) "*")

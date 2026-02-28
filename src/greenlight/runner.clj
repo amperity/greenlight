@@ -13,8 +13,9 @@
     [greenlight.report :as report]
     [greenlight.test :as test])
   (:import
-    java.time.Duration
-    java.time.Instant
+    (java.time
+      Duration
+      Instant)
     java.time.temporal.ChronoUnit
     (java.util.concurrent
       Executors)))
@@ -158,16 +159,62 @@
         (flush)))))
 
 
+(def progres-report-interval-seconds
+  "How often to print the progress of executing tests."
+  15)
+
+
+(defn start-progress-reporter
+  "Starts a thread that periodically prints progress on which tests are
+  currently executing. Returns a tuple of the thread and promise which, when
+  delivered the thread will stop its loop and exit."
+  [printer* tests-running]
+  (let [last-print (atom (Instant/now))
+        printer (fn [s]
+                  (reset! last-print (Instant/now))
+                  (printer* s))
+        stop-promise (promise)]
+    (letfn [(print-progress
+              []
+              (let [tests-running-now @tests-running
+                    message (str (count tests-running-now)
+                                 " "
+                                 (if (< 1 (count tests-running-now))
+                                   "tests are"
+                                   "test is")
+                                 " running:\n"
+                                 (str/join "\n"
+                                           (for [test (sort-by ::test/group tests-running-now)]
+                                             (let [test-group (::test/group test)
+                                                   elapsed-seconds (.getSeconds (Duration/between (::started-at test) (Instant/now)))]
+                                               (str "* "
+                                                    (when test-group
+                                                      (str test-group " - "))
+                                                    (::test/title test)
+                                                    " (" elapsed-seconds "s elapsed)"))))
+                                 "\n\n")]
+                (printer message)))
+            (periodically-print-progress
+              []
+              (try
+                (loop []
+                  (when (not (realized? stop-promise))
+                    (Thread/sleep 1000)
+                    (when (.isBefore @last-print (.minus (Instant/now) progres-report-interval-seconds ChronoUnit/SECONDS))
+                      (print-progress))
+                    (recur)))
+                (catch InterruptedException _)))]
+      (let [thread (Thread. periodically-print-progress)]
+        (.start thread)
+        [thread stop-promise]))))
+
+
 (defn- execute-parallel
   "Run a collection of tests, using an executor pool with `n-threads`"
   [system options tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
-        printer* (sync-printer)
-        last-print (atom (Instant/now))
-        printer (fn [s]
-                  (reset! last-print (Instant/now))
-                  (printer* s))
         tests-running (atom #{})
+        printer (sync-printer)
         run-group (fn run-group
                     [tests]
                     (bound-fn []
@@ -190,45 +237,19 @@
       (printer (format "Starting %d test groups with a parallelization factor of %d.\n"
                        (count test-groups)
                        n-threads))
-      (let [tests-finished (promise)
-            reporter (Thread.
-                       (fn []
-                         (try
-                           (loop []
-                             (when (not (realized? tests-finished))
-                               (Thread/sleep 1000)
-                               (when (.isBefore @last-print (.minus (Instant/now) 15 ChronoUnit/SECONDS))
-                                 (let [running @tests-running]
-                                   (printer
-                                     (str (count running)
-                                          " "
-                                          (if (< 1 (count running))
-                                            "tests are"
-                                            "test is")
-                                          " running:\n"
-                                          (str/join "\n"
-                                                    (for [test (sort-by ::test/group running)]
-                                                      (str "* "
-                                                           (when-let [group (::test/group test)]
-                                                             (str group " - "))
-                                                           (::test/title test)
-                                                           " (" (.getSeconds (Duration/between (::started-at test) (Instant/now))) "s)")))
-                                          "\n\n"))))
-                               (recur)))
-                           (catch InterruptedException _))))]
-        (.start reporter)
-        (let [results (->> test-groups
-                           (map
-                             (fn submit-group
-                               [[_ group-tests]]
-                               (.submit exec-pool ^Callable (run-group group-tests))))
-                           (doall)
-                           (map deref)
-                           (into [] cat))]
-          (deliver tests-finished true)
-          (.interrupt reporter)
-          (.join reporter)
-          results))
+      (let [[progress-reporter stop-promise] (start-progress-reporter printer tests-running)
+            results (->> test-groups
+                         (map
+                           (fn submit-group
+                             [[_ group-tests]]
+                             (.submit exec-pool ^Callable (run-group group-tests))))
+                         (doall)
+                         (map deref)
+                         (into [] cat))]
+        (deliver stop-promise true)
+        (.interrupt progress-reporter)
+        (.join progress-reporter)
+        results)
       (finally
         (.shutdownNow exec-pool)))))
 
