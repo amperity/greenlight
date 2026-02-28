@@ -158,23 +158,27 @@
       (printf "Ran %s tests containing %s steps with %s assertions:"
               (color :cyan (:tests stats))
               (color :cyan (:steps stats))
-              (color [:bold :cyan] (:reports stats)))
+              (color :cyan (:reports stats)))
       (newline)
       (newline)
+      ;; For each outcome (pass, fail, etc.):
+      ;; Print count of tests, and a bulleted list of the test names.
       (doseq [[outcome num-tests] (->> results
                                        (map ::test/outcome)
                                        (frequencies)
                                        (sort-by val (comp - compare)))]
+        ;; Print a header line for this outcome.
         (printf "%s %s\n"
                 (color (state-color outcome) (str outcome))
                 num-tests)
-        (doseq [result (filter (comp #{outcome} ::test/outcome) results)]
+        ;; Print the list of tests.
+        (doseq [test-result (filter (comp #{outcome} ::test/outcome) results)]
           (printf "%s %s%s\n"
                   (color (state-color outcome) "*")
-                  (if-let [group (::test/group result)]
-                    (str group " - ")
+                  (if-let [test-group (::test/group test-result)]
+                    (str (color :magenta (str "[" test-group "]")) " ")
                     "")
-                  (::test/title result)))
+                  (::test/title test-result)))
         (newline)))))
 
 
