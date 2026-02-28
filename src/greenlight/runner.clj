@@ -159,51 +159,52 @@
         (flush)))))
 
 
-(def progres-report-interval-seconds
+(def progres-report-interval
   "How often to print the progress of executing tests."
-  15)
+  (Duration/ofSeconds 15))
 
 
 (defn start-progress-reporter
   "Starts a thread that periodically prints progress on which tests are
-  currently executing. Returns a tuple of the thread and promise which, when
-  delivered the thread will stop its loop and exit."
-  [printer* tests-running]
-  (let [last-print (atom (Instant/now))
-        printer (fn [s]
-                  (reset! last-print (Instant/now))
-                  (printer* s))
+  currently executing. Returns a tuple of the thread and a promise. When the
+  returned promise is delivered, the thread will exit its loop."
+  [printer tests-running]
+  (let [next-print-after (atom (.plus (Instant/now) progres-report-interval))
         stop-promise (promise)]
-    (letfn [(print-progress
-              []
-              (let [tests-running-now @tests-running
-                    message (str (count tests-running-now)
+    (letfn [(print-current-progress
+              [now]
+              (let [tests-currently-running @tests-running
+                    test-list-text (str/join
+                                     "\n"
+                                     (for [running-test (sort-by ::test/group tests-currently-running)]
+                                       (let [test-group (::test/group running-test)
+                                             elapsed-seconds (.getSeconds (Duration/between (::started-at running-test) now))]
+                                         (str "* "
+                                              (when test-group
+                                                (str "[" test-group "] "))
+                                              (::test/title running-test)
+                                              " (" elapsed-seconds "s elapsed)"))))
+                    message (str (count tests-currently-running)
                                  " "
-                                 (if (< 1 (count tests-running-now))
+                                 (if (< 1 (count tests-currently-running))
                                    "tests are"
                                    "test is")
                                  " running:\n"
-                                 (str/join "\n"
-                                           (for [test (sort-by ::test/group tests-running-now)]
-                                             (let [test-group (::test/group test)
-                                                   elapsed-seconds (.getSeconds (Duration/between (::started-at test) (Instant/now)))]
-                                               (str "* "
-                                                    (when test-group
-                                                      (str test-group " - "))
-                                                    (::test/title test)
-                                                    " (" elapsed-seconds "s elapsed)"))))
+                                 test-list-text
                                  "\n\n")]
                 (printer message)))
             (periodically-print-progress
               []
               (try
-                (loop []
-                  (when (not (realized? stop-promise))
-                    (Thread/sleep 1000)
-                    (when (.isBefore @last-print (.minus (Instant/now) progres-report-interval-seconds ChronoUnit/SECONDS))
-                      (print-progress))
-                    (recur)))
-                (catch InterruptedException _)))]
+                (while (not (realized? stop-promise))
+                  (Thread/sleep 1000)
+                  (let [now (Instant/now)]
+                    (when (.isAfter now @next-print-after)
+                      (print-current-progress now)
+                      (reset! next-print-after (.plus now progres-report-interval)))))
+                (catch InterruptedException _
+                  ;; Interrupted, exit the loop and re-interrupt the thread.
+                  (Thread/interrupted))))]
       (let [thread (Thread. periodically-print-progress)]
         (.start thread)
         [thread stop-promise]))))
