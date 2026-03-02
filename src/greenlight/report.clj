@@ -169,7 +169,7 @@
                                        (sort-by val (comp - compare)))]
         ;; Print a header line for this outcome.
         (printf "%s %s\n"
-                (color (state-color outcome) (str outcome))
+                (color [:bold (state-color outcome)] (str outcome))
                 num-tests)
         ;; Print the list of tests.
         (doseq [test-result (filter (comp #{outcome} ::test/outcome) results)]
