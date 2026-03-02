@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+...
+
+
+## [0.8.0] - 2026-03-02
+
 ### Changed
 
 Enhance console output during test runs [#69](https://github.com/amperity/greenlight/pull/69):
@@ -140,7 +145,8 @@ Enhance console output during test runs [#69](https://github.com/amperity/greenl
 Initial project release
 
 
-[Unreleased]: https://github.com/amperity/greenlight/compare/0.7.2...HEAD
+[Unreleased]: https://github.com/amperity/greenlight/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/amperity/greenlight/compare/0.7.2...0.8.0
 [0.7.2]: https://github.com/amperity/greenlight/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/amperity/greenlight/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/amperity/greenlight/compare/0.6.1...0.7.0
