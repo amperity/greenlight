@@ -6,7 +6,13 @@ follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-...
+
+### Changed
+
+Enhance console output during test runs [#69](https://github.com/amperity/greenlight/pull/69):
+- When executing tests in parallel with the `--parallel` option, periodically
+  print a list of test names that are running and their elapsed time.
+- At the end of all tests, print a summary of tests and their outcomes.
 
 ## [0.7.2] - 2024-06-24
 
