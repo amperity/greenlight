@@ -13,6 +13,10 @@
     [greenlight.report :as report]
     [greenlight.test :as test])
   (:import
+    (java.time
+      Duration
+      Instant)
+    java.time.temporal.ChronoUnit
     (java.util.concurrent
       Executors)))
 
@@ -155,10 +159,63 @@
         (flush)))))
 
 
+(def progres-report-interval
+  "How often to print the progress of executing tests."
+  (Duration/ofSeconds 15))
+
+
+(defn start-progress-reporter
+  "Starts a thread that periodically prints progress on which tests are
+  currently executing. Returns a tuple of the thread and a promise. When the
+  returned promise is delivered, the thread will exit its loop."
+  [printer tests-running]
+  (let [next-print-after (atom (.plus (Instant/now) progres-report-interval))
+        stop-promise (promise)]
+    (letfn [(print-current-progress
+              [now]
+              (let [tests-currently-running @tests-running
+                    test-list-text (->> tests-currently-running
+                                        (sort-by ::test/group)
+                                        (map (fn test-line
+                                               [running-test]
+                                               (let [test-group (::test/group running-test)
+                                                     elapsed-seconds (.getSeconds (Duration/between (::started-at running-test) now))]
+                                                 (format "* [group %s] %s (%ds elapsed)"
+                                                         (or test-group "default")
+                                                         (::test/title running-test)
+                                                         elapsed-seconds))))
+                                        (str/join "\n"))
+                    message (str (count tests-currently-running)
+                                 " "
+                                 (if (< 1 (count tests-currently-running))
+                                   "tests are"
+                                   "test is")
+                                 " running:\n"
+                                 test-list-text
+                                 "\n\n")]
+                (printer message)))
+            (periodically-print-progress
+              []
+              (try
+                (while (not (realized? stop-promise))
+                  (Thread/sleep 1000)
+                  (let [now (Instant/now)]
+                    (when (.isAfter now @next-print-after)
+                      (print-current-progress now)
+                      (reset! next-print-after (.plus now progres-report-interval)))))
+                (catch InterruptedException _
+                  ;; Interrupted, exit the loop and re-interrupt the thread.
+                  (Thread/interrupted))))]
+      (let [thread (Thread. periodically-print-progress)]
+        (.start thread)
+        [thread stop-promise]))))
+
+
 (defn- execute-parallel
   "Run a collection of tests, using an executor pool with `n-threads`"
   [system options tests n-threads]
   (let [exec-pool (Executors/newFixedThreadPool n-threads)
+        tests-running (atom #{})
         printer (sync-printer)
         run-group (fn run-group
                     [tests]
@@ -167,7 +224,12 @@
                         (fn [test]
                           (printer (str "* " (::test/title test) " running.\n"))
                           (with-delayed-output printer
-                            (test/run-test! system options test)))
+                            (let [test-info (assoc test ::started-at (Instant/now))]
+                              (swap! tests-running conj test-info)
+                              (try
+                                (test/run-test! system options test)
+                                (finally
+                                  (swap! tests-running disj test-info))))))
                         tests)))
         test-groups (group-by #(or (::test/group %) (gensym)) tests)]
     (try
@@ -177,14 +239,19 @@
       (printer (format "Starting %d test groups with a parallelization factor of %d.\n"
                        (count test-groups)
                        n-threads))
-      (->> test-groups
-           (map
-             (fn submit-group
-               [[_ group-tests]]
-               (.submit exec-pool ^Callable (run-group group-tests))))
-           (doall)
-           (map deref)
-           (into [] cat))
+      (let [[progress-reporter stop-promise] (start-progress-reporter printer tests-running)
+            results (->> test-groups
+                         (map
+                           (fn submit-group
+                             [[_ group-tests]]
+                             (.submit exec-pool ^Callable (run-group group-tests))))
+                         (doall)
+                         (map deref)
+                         (into [] cat))]
+        (deliver stop-promise true)
+        (.interrupt progress-reporter)
+        (.join progress-reporter)
+        results)
       (finally
         (.shutdownNow exec-pool)))))
 

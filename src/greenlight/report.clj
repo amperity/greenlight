@@ -150,17 +150,34 @@
                        :reports (count (mapcat ::step/reports
                                                (::test/steps result)))}))
                   {} results)]
-      (printf "Ran %s tests containing %s steps with %s assertions:\n"
+      (newline)
+      (println "-----------------------------------------------------------")
+      (println "TEST RESULTS")
+      (println "-----------------------------------------------------------")
+      (newline)
+      (printf "Ran %s tests containing %s steps with %s assertions:"
               (color :cyan (:tests stats))
               (color :cyan (:steps stats))
-              (color [:bold :cyan] (:reports stats)))
-      (doseq [[outcome freq] (->> (map ::test/outcome results)
-                                  (frequencies)
-                                  (sort-by val (comp - compare)))]
-        (printf "%s %d %s\n"
-                (color (state-color outcome) "*")
-                freq
-                (name outcome))))))
+              (color :cyan (:reports stats)))
+      (newline)
+      (newline)
+      ;; For each outcome (pass, fail, etc.):
+      ;; Print count of tests, and a bulleted list of the test names.
+      (doseq [[outcome num-tests] (->> results
+                                       (map ::test/outcome)
+                                       (frequencies)
+                                       (sort-by val (comp - compare)))]
+        ;; Print a header line for this outcome.
+        (printf "%s %s\n"
+                (color [:bold (state-color outcome)] (str outcome))
+                num-tests)
+        ;; Print the list of tests.
+        (doseq [test-result (filter (comp #{outcome} ::test/outcome) results)]
+          (printf "%s %s %s\n"
+                  (color (state-color outcome) "*")
+                  (color :magenta (str "[group " (::test/group test-result "default") "]"))
+                  (::test/title test-result)))
+        (newline)))))
 
 
 (defn write-junit-results
