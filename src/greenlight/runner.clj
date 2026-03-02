@@ -174,16 +174,17 @@
     (letfn [(print-current-progress
               [now]
               (let [tests-currently-running @tests-running
-                    test-list-text (str/join
-                                     "\n"
-                                     (for [running-test (sort-by ::test/group tests-currently-running)]
-                                       (let [test-group (::test/group running-test)
-                                             elapsed-seconds (.getSeconds (Duration/between (::started-at running-test) now))]
-                                         (str "* "
-                                              (when test-group
-                                                (str "[" test-group "] "))
-                                              (::test/title running-test)
-                                              " (" elapsed-seconds "s elapsed)"))))
+                    test-list-text (->> tests-currently-running
+                                        (sort-by ::test/group)
+                                        (map (fn test-line
+                                               [running-test]
+                                               (let [test-group (::test/group running-test)
+                                                     elapsed-seconds (.getSeconds (Duration/between (::started-at running-test) now))]
+                                                 (format "* [group %s] %s (%ds elapsed)"
+                                                         (or test-group "default")
+                                                         (::test/title running-test)
+                                                         elapsed-seconds))))
+                                        (str/join "\n"))
                     message (str (count tests-currently-running)
                                  " "
                                  (if (< 1 (count tests-currently-running))
