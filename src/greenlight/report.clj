@@ -173,11 +173,9 @@
                 num-tests)
         ;; Print the list of tests.
         (doseq [test-result (filter (comp #{outcome} ::test/outcome) results)]
-          (printf "%s %s%s\n"
+          (printf "%s %s %s\n"
                   (color (state-color outcome) "*")
-                  (if-let [test-group (::test/group test-result)]
-                    (str (color :magenta (str "[" test-group "]")) " ")
-                    "")
+                  (color :magenta (str "[group " (::test/group test-result "default") "]"))
                   (::test/title test-result)))
         (newline)))))
 
